@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {PLAYER_SPRITE,ENEMY_SPRITES,TERRAIN_MOTIFS,spriteDimensions,rockyTerrainY} from '../../game/content/classic-sprites.mjs'
 test('classic player silhouette fits LCD and has an extended forward nose',()=>{
  assert.deepEqual(spriteDimensions(PLAYER_SPRITE),{w:7,h:5})
- assert.equal(PLAYER_SPRITE[3].at(-1),'#')
+ assert.equal(PLAYER_SPRITE[2].at(-1),'#')
  assert.ok(PLAYER_SPRITE.every(row=>/^[.#]+$/.test(row)))
 })
 test('three varied enemy silhouettes remain within sprite hitboxes',()=>{
