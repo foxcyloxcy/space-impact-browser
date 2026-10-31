@@ -29,8 +29,9 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './game/core/rules.mjs'
 import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
+import { LEVEL_ONE, levelOneTerrainCollision, levelOneEnemyY, levelOneBossPosition, levelOneBossShot, levelOneTerrainHeight, levelOneCeilingHeight } from './game/levels/level-one.mjs'
 
-type Actor = { x:number; y:number; w:number; h:number; hp:number; speed:number; kind?:number; phase?:number }
+type Actor = { x:number; y:number; w:number; h:number; hp:number; speed:number; kind?:number; phase?:number; originY?:number; age?:number; shotTimer?:number }
 type Shot = { x:number; y:number; vx:number; vy:number; special?:boolean; type?:'bomb'|'rocket'|'laser'; ttl?:number }
 type Drop = { x:number; y:number; kind:'life'|'ammo' }
 const canvas = ref<HTMLCanvasElement|null>(null)
@@ -80,7 +81,7 @@ function saveBest(){if(score.value>best.value){best.value=score.value;try{localS
 // The observed game uses authored enemy paths; these events are provisional reconstructions.
 let spawnIndex=0
 function enemySpawn(kind:number,y:number){
- enemies.push({x:W+3,y,w:kind===2?8:6,h:kind===2?7:5,hp:kind===2?3:1,speed:11+stage.value*.55,kind,phase:spawnIndex*.8})
+ enemies.push({x:W+3,y,w:kind===2?8:6,h:kind===2?7:5,hp:kind===2?3:1,speed:stage.value===1?LEVEL_ONE.enemySpeed:11+stage.value*.55,kind,phase:spawnIndex*.8,originY:y,age:0})
 }
 function firePrimary(){
  if(fireTimer>0)return
@@ -89,7 +90,7 @@ function firePrimary(){
 function bossSpawn(){
  bossSpawned=true
  enemies=enemies.filter(e=>e.x<W && e.kind!==9)
- enemies.push({x:W+3,y:14,w:23,h:25,hp:18+stage.value*7,speed:7,kind:9,phase:0})
+ enemies.push({x:W+3,y:14,w:23,h:25,hp:18+stage.value*7,speed:7,kind:9,phase:0,age:0,shotTimer:LEVEL_ONE.bossCadence})
 }
 function update(dt:number){
  elapsed+=dt;stageTime+=dt;invulnerable=Math.max(0,invulnerable-dt);fireTimer-=dt
@@ -104,10 +105,13 @@ function update(dt:number){
  drops.forEach(d=>d.x-=35*dt)
  for(const enemy of enemies){
   enemy.phase=(enemy.phase||0)+dt
+  enemy.age=(enemy.age||0)+dt
   enemy.x-=enemy.speed*dt
-  if(enemy.kind===1)enemy.y+=Math.sin(enemy.phase*5)*5*dt
+  if(stage.value===1 && enemy.kind!==9)enemy.y=levelOneEnemyY(enemy.originY??enemy.y,enemy.kind||0,enemy.age)
+  if(stage.value!==1 && enemy.kind===1)enemy.y+=Math.sin(enemy.phase*5)*5*dt
   if(enemy.kind===9){enemy.x=Math.max(60,enemy.x);enemy.y=14+Math.sin(enemy.phase*1.4)*7
-   if(Math.random()<dt*(.7+stage.value*.12))hostile.push({x:enemy.x,y:enemy.y+11,vx:-24-stage.value,vy:(player.y-enemy.y)*.23})
+   if(stage.value===1){const pos=levelOneBossPosition(enemy.age||0);enemy.x=pos.x;enemy.y=pos.y;enemy.shotTimer=(enemy.shotTimer??LEVEL_ONE.bossCadence)-dt;if(enemy.shotTimer<=0){hostile.push(levelOneBossShot(enemy,player));enemy.shotTimer+=LEVEL_ONE.bossCadence}}
+   else if(Math.random()<dt*(.7+stage.value*.12))hostile.push({x:enemy.x,y:enemy.y+11,vx:-24-stage.value,vy:(player.y-enemy.y)*.23})
   }else if(enemy.kind===2 && Math.random()<dt*.35)hostile.push({x:enemy.x,y:enemy.y+3,vx:-26,vy:0})
   if(invulnerable<=0 && overlap(player,enemy))hit()
  }
@@ -120,6 +124,7 @@ function update(dt:number){
    }break
   }}
  }
+ if(stage.value===1 && levelOneTerrainCollision(player,elapsed*LEVEL_ONE.scrollSpeed))hit()
  for(const s of hostile){if(overlap({x:s.x,y:s.y,w:2,h:1},player)){hit();s.x=-100}}
  for(const d of drops){if(overlap({x:d.x,y:d.y,w:4,h:4},player)){if(d.kind==='life')lives=Math.min(3,lives+1);else ammo=Math.min(9,ammo+2);d.x=-100}}
  enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>s.x<W+10&&s.y>TOP&&s.y<H&&(s.ttl===undefined||s.ttl>0));hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
@@ -201,9 +206,9 @@ function drawTerrain(){
   ctx.fillStyle='#17291e'
   for(let x=0;x<W;x++){
    const world=x+scroll
-   const ridge=42-(Math.floor(world/11)%4)*2-(Math.floor(world/7)%2)
+   const ridge=levelOneTerrainHeight(world)
    rect(x,ridge,1,H-ridge)
-   if(Math.floor(world/29)%3===1 && world%29<8)rect(x,8,1,Math.max(1,4-Math.abs((world%29)-4)))
+   if(Math.floor(world/29)%3===1 && world%29<8)rect(x,8,1,levelOneCeilingHeight(world))
   }
   return
  }
