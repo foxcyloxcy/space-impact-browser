@@ -130,6 +130,11 @@ function update(dt:number){
   if(invulnerable<=0 && overlap(player,enemy))hit()
  }
  for(const s of shots){
+  // Bombs steer gently toward the closest onscreen target, retaining forward travel.
+  if(s.type==='bomb'){
+   const target=enemies.filter(e=>e.hp>0&&e.x>=s.x).sort((a,b)=>(a.x-s.x)-(b.x-s.x))[0]
+   if(target){const delta=(target.y+target.h/2)-s.y;s.vy=Math.max(-16,Math.min(16,delta*2))}
+  }
   for(const enemy of enemies){if(enemy.hp>0 && sweptShotHit(s,enemy,dt)){
    enemy.hp=applyHit(enemy,s).hp;s.x=W+100
    if(enemy.hp<=0){audioFeedback.enemy();score.value+=enemy.kind===9?500:enemy.kind===2?30:10
