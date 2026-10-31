@@ -38,3 +38,7 @@ For each stage, require all five gates: **(1)** reference trace and timestamps, 
 ## Stop conditions
 
 Do not invent timings or hand-draw copyrighted sprites by tracing extracted firmware assets. Do not report eight completed levels because eight provisional arrays are present. Do not claim that comparing a handful of screenshots proves frame-perfect behavior.
+
+## Level 1 implementation checkpoint (2026-11-01)
+
+A standalone **Level 1 terrain study** and **Level 1 boss silhouette** are implemented in `app.vue`. These are original pixel drawings built at 84×48, not firmware-extracted art. They give Level 1 its own identity and preserve our deployment pipeline. **Not yet verified**: boss sprite parity, exact terrain height at each frame, boss attack timings, collision, wave positions and the original audio. Neither a screen recording nor firmware input was available to produce defensible golden fixtures; the Level 1 parity gate remains open. Do not mark the stage complete on this basis.
