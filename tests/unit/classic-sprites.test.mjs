@@ -2,14 +2,14 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {PLAYER_SPRITE,ENEMY_SPRITES,TERRAIN_MOTIFS,spriteDimensions,rockyTerrainY} from '../../game/content/classic-sprites.mjs'
 test('classic player silhouette fits LCD and has an extended forward nose',()=>{
- assert.deepEqual(spriteDimensions(PLAYER_SPRITE),{w:11,h:7})
+ assert.deepEqual(spriteDimensions(PLAYER_SPRITE),{w:7,h:5})
  assert.equal(PLAYER_SPRITE[3].at(-1),'#')
  assert.ok(PLAYER_SPRITE.every(row=>/^[.#]+$/.test(row)))
 })
 test('three varied enemy silhouettes remain within sprite hitboxes',()=>{
  assert.equal(ENEMY_SPRITES.length,3)
  assert.equal(new Set(ENEMY_SPRITES.map(rows=>rows.join('|'))).size,3)
- for(const rows of ENEMY_SPRITES){const d=spriteDimensions(rows);assert.ok(d.w<=10&&d.h<=7)}
+ for(const rows of ENEMY_SPRITES){const d=spriteDimensions(rows);assert.ok(d.w<=7&&d.h<=5)}
 })
 test('rocky terrain is consistently bounded and wraps in every stage',()=>{
  assert.equal(TERRAIN_MOTIFS.length,8)
