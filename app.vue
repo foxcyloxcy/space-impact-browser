@@ -29,6 +29,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './game/core/rules.mjs'
 import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
+import { bossProfile, bossPosition, bossProjectiles, bossSprite } from './game/content/bosses.mjs'
 import { createProjectile, sweptShotHit, applyHit, activeProjectile, advanceProjectile } from './game/core/combat.mjs'
 import { LEVEL_ONE, levelOneTerrainCollision, levelOneEnemyY, levelOneBossPosition, levelOneBossShot } from './game/levels/level-one.mjs'
 
@@ -89,7 +90,7 @@ function firePrimary(){
 function bossSpawn(){
  bossSpawned=true
  enemies=enemies.filter(e=>e.x<W && e.kind!==9)
- enemies.push({x:W+3,y:14,w:23,h:25,hp:18+stage.value*7,speed:7,kind:9,phase:0,age:0,shotTimer:LEVEL_ONE.bossCadence})
+ enemies.push({x:W+3,y:14,w:23,h:25,hp:bossProfile(stage.value).hp,speed:7,kind:9,phase:0,age:0,shotTimer:bossProfile(stage.value).cadence})
 }
 function update(dt:number){
  elapsed+=dt;stageTime+=dt;invulnerable=Math.max(0,invulnerable-dt);fireTimer-=dt
@@ -108,9 +109,15 @@ function update(dt:number){
   enemy.x-=enemy.speed*dt
   if(stage.value===1 && enemy.kind!==9)enemy.y=levelOneEnemyY(enemy.originY??enemy.y,enemy.kind||0,enemy.age)
   if(stage.value!==1 && enemy.kind===1)enemy.y+=Math.sin(enemy.phase*5)*5*dt
-  if(enemy.kind===9){enemy.x=Math.max(60,enemy.x);enemy.y=14+Math.sin(enemy.phase*1.4)*7
-   if(stage.value===1){const pos=levelOneBossPosition(enemy.age||0);enemy.x=pos.x;enemy.y=pos.y;enemy.shotTimer=(enemy.shotTimer??LEVEL_ONE.bossCadence)-dt;if(enemy.shotTimer<=0){hostile.push(levelOneBossShot(enemy,player));enemy.shotTimer+=LEVEL_ONE.bossCadence}}
-   else if(Math.random()<dt*(.7+stage.value*.12))hostile.push({x:enemy.x,y:enemy.y+11,vx:-24-stage.value,vy:(player.y-enemy.y)*.23})
+  if(enemy.kind===9){
+   const pos=stage.value===1?levelOneBossPosition(enemy.age||0):bossPosition(stage.value,enemy.age||0)
+   enemy.x=pos.x;enemy.y=pos.y
+   const profile=bossProfile(stage.value)
+   enemy.shotTimer=(enemy.shotTimer??profile.cadence)-dt
+   if(enemy.shotTimer<=0){
+    hostile.push(...(stage.value===1?[levelOneBossShot(enemy,player)]:bossProjectiles(stage.value,enemy,player)))
+    enemy.shotTimer+=profile.cadence
+   }
   }else if(enemy.kind===2 && Math.random()<dt*.35)hostile.push({x:enemy.x,y:enemy.y+3,vx:-26,vy:0})
   if(invulnerable<=0 && overlap(player,enemy))hit()
  }
@@ -225,11 +232,11 @@ function draw(){
  ctx.fillText(String(score.value%100000).padStart(5,'0'),53,0)
  if(ammo>0){rect(43,1,3,3);ctx.font='5px monospace';ctx.fillText(String(ammo),47,0)}
  if(invulnerable===0||Math.floor(elapsed*8)%2===0)sprite(player.x,player.y,ship)
- for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,stage.value===1?firstBossArt:bossArt);else sprite(e.x,e.y,aliens[e.kind||0])}
+ for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,stage.value===1?firstBossArt:bossSprite(stage.value),stage.value===1?1:2);else sprite(e.x,e.y,aliens[e.kind||0])}
  for(const s of shots){if(s.type==='bomb'){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(s.x),Math.round(s.y),3,3)}else rect(s.x,s.y,s.type==='laser'?8:s.type==='rocket'?4:2,1)}
  for(const s of hostile)rect(s.x,s.y,2,1)
  for(const d of drops){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(d.x),Math.round(d.y),4,4);rect(d.x+1,d.y+1,2,2)}
- if(bossSpawned){const b=enemies.find(e=>e.kind===9);if(b){ctx.fillStyle='#17291e';rect(61,6,Math.max(1,Math.round(21*b.hp/(18+stage.value*7))),1)}}
+ if(bossSpawned){const b=enemies.find(e=>e.kind===9);if(b){ctx.fillStyle='#17291e';rect(61,6,Math.max(1,Math.round(21*b.hp/bossProfile(stage.value).hp)),1)}}
 }
 function loop(t:number){const dt=Math.min((t-last)/1000||0,.1);last=t;if(mode.value==='playing'){const steps=fixedAdvance(accumulator,dt);accumulator=steps.accumulator;for(let i=0;i<steps.steps&&mode.value==='playing';i++)update(1/60)}else{accumulator=0}draw();frame=requestAnimationFrame(loop)}
 function blur(){held.clear();if(mode.value==='playing')mode.value='paused'}
