@@ -46,3 +46,10 @@ Accounts, cloud leaderboards, multiplayer, monetization, paid APIs or migrating 
 - [ ] Obtain permission-cleared, frame-audited sprites and exact eight-level timing/wave data.
 - [ ] Implement original bomb, rocket and laser special weapons, original sound and proper level obstacle hitboxes.
 - [ ] Confirm GitHub Pages deployment of the fidelity update before calling it live.
+
+## 2026-10-31 fidelity evidence milestone
+- [x] Found independent firmware-researched Nokia 3310 Space Impact verification work and documented its AGPL/firmware asset restrictions in docs/VERIFICATION_STANDARD.md.
+- [x] Corrected shared game coordinate system and unit-test expectations to 84×48.
+- [ ] Obtain lawful reference footage/firmware-derived observations for each stage, then independently implement and compare frames.
+- [ ] Match all eight bosses and original terrain geometry, collisions, powerups, score rules and audio.
+- [ ] Run screenshot diffs and input trace replay before any 'exact recreation' claim.
