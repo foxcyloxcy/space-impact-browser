@@ -10,7 +10,7 @@
           <button @click="start">{{ mode === 'paused' ? 'RESUME' : mode === 'ready' ? 'START GAME' : 'PLAY AGAIN' }}</button>
         </div>
       </div>
-      <div class="toolbar"><span>BEST {{ String(best).padStart(5,'0') }}</span><span>STAGE {{ stage }}/8</span><button @click="toggleSound" :aria-label="muted ? 'Unmute sound' : 'Mute sound'">{{ muted ? 'SOUND OFF' : 'SOUND ON' }}</button><button @click="togglePause" :disabled="mode === 'ready' || mode === 'gameover' || mode === 'won'">{{ mode === 'paused' ? 'RESUME' : 'PAUSE' }}</button></div>
+      <div class="toolbar"><span>BEST {{ String(best).padStart(5,'0') }}</span><span>STAGE {{ stage }}/8</span><span>NEXT {{ specialTypes[selectedSpecial.value] }}</span><button @click="toggleSound" :aria-label="muted ? 'Unmute sound' : 'Mute sound'">{{ muted ? 'SOUND OFF' : 'SOUND ON' }}</button><button @click="togglePause" :disabled="mode === 'ready' || mode === 'gameover' || mode === 'won'">{{ mode === 'paused' ? 'RESUME' : 'PAUSE' }}</button></div>
       <div class="pad" aria-label="Touch controls">
         <div class="dpad">
           <button class="up" aria-label="Move up" @pointerdown.prevent="press('up',$event)" @pointerup="release('up')" @pointercancel="release('up')" @pointerleave="release('up')">▲</button>
@@ -52,9 +52,9 @@ const stars = Array.from({length:12},(_,i)=>({x:(i*23)%W,y:TOP+2+((i*11)%(H-TOP-
 const audioFeedback=createAudioFeedback()
 function toggleSound(){muted.value=!muted.value;audioFeedback.setMuted(muted.value)}
 const specialTypes=['bomb','rocket','laser'] as const
-let selectedSpecial=0
+const selectedSpecial=ref(0)
 function reset() {
-  held.clear();accumulator=0;selectedSpecial=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:7,h:5,hp:1,speed:29};stageReset();mode.value='playing'
+  held.clear();accumulator=0;selectedSpecial.value=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:7,h:5,hp:1,speed:29};stageReset();mode.value='playing'
 }
 function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;spawnIndex=0;stageTime=0;invulnerable=1.5}
 function start(){audioFeedback.unlock();if(mode.value==='paused'){mode.value='playing';return}reset()}
@@ -67,7 +67,7 @@ function special(){
  ammo=useSpecial(ammo).ammo
  const type=specialTypes[selectedSpecial]
  shots.push(createProjectile(type,player.x+6,player.y+2))
- selectedSpecial=(selectedSpecial+1)%specialTypes.length
+ selectedSpecial.value=(selectedSpecial.value+1)%specialTypes.length
 }
 function keydown(e:KeyboardEvent){
  const map:Record<string,string>={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',' ':'fire','1':'fire','3':'fire'}
