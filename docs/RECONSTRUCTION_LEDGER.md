@@ -42,3 +42,10 @@ Do not invent timings or hand-draw copyrighted sprites by tracing extracted firm
 ## Level 1 implementation checkpoint (2026-11-01)
 
 A standalone **Level 1 terrain study** and **Level 1 boss silhouette** are implemented in `app.vue`. These are original pixel drawings built at 84×48, not firmware-extracted art. They give Level 1 its own identity and preserve our deployment pipeline. **Not yet verified**: boss sprite parity, exact terrain height at each frame, boss attack timings, collision, wave positions and the original audio. Neither a screen recording nor firmware input was available to produce defensible golden fixtures; the Level 1 parity gate remains open. Do not mark the stage complete on this basis.
+
+## Level 1 mechanical implementation (2026-11-01)
+
+- `game/levels/level-one.mjs` centralizes independently authored floor/ceiling geometry, obstacle hit checks, repeatable enemy trajectories, boss motion, aimed boss-projectile movement, and fixed boss firing cadence.
+- `app.vue` now uses the same terrain geometry for rendering and collision, and uses deterministic first-stage enemy/boss motion rather than the global sine/random attack behavior.
+- `tests/unit/level-one.test.mjs` covers geometry and obstacle collision, trajectory reproducibility, boss aim and timing conversion.
+- **Historical accuracy remains UNVERIFIED:** parameters are approximations pending lawful emulator/video frame measurements, not measurements from Nokia ROM. Separate weapon-damage physics, pickup pacing, original sound, exact boss silhouettes and full input replay remain outstanding.
