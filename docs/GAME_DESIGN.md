@@ -14,7 +14,7 @@ Sources and exact confidence levels: `docs/REFERENCES.md`.
 ## Implementation versus reference
 | Feature | Current browser implementation | Fidelity status |
 |---|---|---|
-| Landscape monochrome canvas | 320x200 virtual pixels | Browser adaptation, not the Nokia resolution |
+| Landscape monochrome canvas | 84x48 virtual pixels | Nokia 3310-class LCD dimensions; individual assets still approximated |
 | Player ship | Custom procedural pixels | Placeholder; visual comparison outstanding |
 | Eight stages | Eight themed sectors with timers | Progression works in code; layouts not faithful |
 | Bosses | One procedural boss per sector | Mechanics prototype; original patterns unverified |
@@ -45,3 +45,11 @@ Sources and exact confidence levels: `docs/REFERENCES.md`.
 6. Run device/browser comparisons, document outstanding differences.
 
 No claim is made that stage visuals, sounds, boss attacks, weapon variants or level timings currently match the original.
+
+## 2026-10-31 fidelity update
+- Replaced enlarged 320×200 playfield with 84×48 LCD-class virtual coordinates and pixel scaling.
+- Implemented minimal three-heart, two-digit stage, five-digit score, and ammo indicator HUD.
+- Replaced scaled alien graphics with original monochrome pixel drawings and a large boss silhouette.
+- Replaced purely random enemy selection with reproducible per-stage formation-type sequences; **not yet original wave transcription**.
+- Terrain is now small scrolling linework; original obstacle collision geometry and enemy art are still unverified.
+- Reference screenshots: https://thesmartlocal.com/read/old-school-phone-games/ and https://photogallery.indiatimes.com/gadgets/news-events/nokia-3310-the-wonder-years/4-jpg/articleshow/57533626.cms
