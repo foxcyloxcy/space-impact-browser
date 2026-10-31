@@ -31,6 +31,7 @@ import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './ga
 import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
 import { bossProfile, bossPosition, bossProjectiles, bossSprite } from './game/content/bosses.mjs'
 import { sceneForStage, sceneryAt } from './game/content/scenery.mjs'
+import { PLAYER_SPRITE, ENEMY_SPRITES, rockyTerrainY } from './game/content/classic-sprites.mjs'
 import { createAudioFeedback } from './game/audio/feedback.mjs'
 import { createProjectile, sweptShotHit, applyHit, activeProjectile, advanceProjectile } from './game/core/combat.mjs'
 import { LEVEL_ONE, levelOneTerrainCollision, levelOneEnemyY, levelOneBossPosition, levelOneBossShot } from './game/levels/level-one.mjs'
@@ -45,7 +46,7 @@ const W=84,H=48, TOP=7
 const held = new Set<string>()
 let ctx: CanvasRenderingContext2D | null = null
 let frame=0, last=0, accumulator=0, elapsed=0, spawnTimer=0, fireTimer=0, invulnerable=0, lives=3, ammo=3, bossSpawned=false, stageTime=0
-let player:Actor={x:9,y:24,w:7,h:5,hp:1,speed:29}
+let player:Actor={x:9,y:24,w:11,h:7,hp:1,speed:29}
 let enemies:Actor[]=[], shots:Shot[]=[], hostile:Shot[]=[], drops:Drop[]=[]
 const stars = Array.from({length:12},(_,i)=>({x:(i*23)%W,y:TOP+2+((i*11)%(H-TOP-5)),size:1}))
 const audioFeedback=createAudioFeedback()
@@ -53,7 +54,7 @@ function toggleSound(){muted.value=!muted.value;audioFeedback.setMuted(muted.val
 const specialTypes=['bomb','rocket','laser'] as const
 let selectedSpecial=0
 function reset() {
-  held.clear();accumulator=0;selectedSpecial=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:7,h:5,hp:1,speed:29};stageReset();mode.value='playing'
+  held.clear();accumulator=0;selectedSpecial=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:11,h:7,hp:1,speed:29};stageReset();mode.value='playing'
 }
 function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;spawnIndex=0;stageTime=0;invulnerable=1.5}
 function start(){audioFeedback.unlock();if(mode.value==='paused'){mode.value='playing';return}reset()}
@@ -87,7 +88,7 @@ function saveBest(){if(score.value>best.value){best.value=score.value;try{localS
 // The observed game uses authored enemy paths; these events are provisional reconstructions.
 let spawnIndex=0
 function enemySpawn(kind:number,y:number){
- enemies.push({x:W+3,y,w:kind===2?8:6,h:kind===2?7:5,hp:kind===2?3:1,speed:stage.value===1?LEVEL_ONE.enemySpeed:11+stage.value*.55,kind,phase:spawnIndex*.8,originY:y,age:0})
+ enemies.push({x:W+3,y,w:9,h:7,hp:kind===2?3:1,speed:stage.value===1?LEVEL_ONE.enemySpeed:11+stage.value*.55,kind,phase:spawnIndex*.8,originY:y,age:0})
 }
 function firePrimary(){
  if(mode.value!=='playing'||fireTimer>0)return
@@ -149,12 +150,6 @@ function sprite(x:number,y:number,rows:readonly string[],scale=1){
  if(!ctx)return
  rows.forEach((line,j)=>{for(let i=0;i<line.length;i++)if(line[i]==='#')rect(x+i*scale,y+j*scale,scale,scale)})
 }
-const ship=['..#....','#.##...','######.','#.##...','..#....']
-const aliens=[
- ['.#..#.','######','.####.','#.##.#','.#..#.'],
- ['..##..','.####.','##..##','.####.','.#..#.'],
- ['..####..','.#.##.#.','########','#.#..#.#','.######.','..#..#..']
-]
 // Level 1 is the first clean-room visual study. This silhouette is independently
 // drawn and approximate, NOT extracted firmware art; the others remain placeholders.
 const firstBossArt=[
@@ -214,13 +209,17 @@ const bossArt=[
 function drawTerrain(){
  if(!ctx)return
  const scene=sceneForStage(stage.value)
- if(!scene.floor)return
- const scroll=Math.floor(elapsed*scene.speed)
+ const scroll=Math.floor(elapsed*(scene.speed||5))
  ctx.fillStyle='#17291e'
+ // Sparse low polyline during the first stage and pronounced rocky peaks later.
  for(let x=0;x<W;x++){
-  const geo=sceneryAt(stage.value,x+scroll)
-  rect(x,geo.floor,1,H-geo.floor)
-  if(scene.ceiling)rect(x,TOP,1,geo.ceiling-TOP)
+  const world=x+scroll
+  const floor=rockyTerrainY(stage.value,world)
+  rect(x,floor,1,H-floor)
+  if(stage.value>=3&&scene.ceiling){
+   const cap=7+Math.max(0,Math.round(4*Math.abs(Math.sin(world/15+stage.value))))
+   rect(x,TOP,1,cap-TOP)
+  }
  }
 }
 function draw(){
@@ -238,8 +237,8 @@ function draw(){
  ctx.fillText(String(stage.value).padStart(2,'0'),31,0)
  ctx.fillText(String(score.value%100000).padStart(5,'0'),53,0)
  if(ammo>0){rect(43,1,3,3);ctx.font='5px monospace';ctx.fillText(String(ammo),47,0)}
- if(invulnerable===0||Math.floor(elapsed*8)%2===0)sprite(player.x,player.y,ship)
- for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,stage.value===1?firstBossArt:bossSprite(stage.value),stage.value===1?1:2);else sprite(e.x,e.y,aliens[e.kind||0])}
+ if(invulnerable===0||Math.floor(elapsed*8)%2===0)sprite(player.x,player.y,PLAYER_SPRITE)
+ for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,stage.value===1?firstBossArt:bossSprite(stage.value),stage.value===1?1:2);else sprite(e.x,e.y,ENEMY_SPRITES[e.kind||0])}
  for(const s of shots){if(s.type==='bomb'){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(s.x),Math.round(s.y),3,3)}else rect(s.x,s.y,s.type==='laser'?8:s.type==='rocket'?4:2,1)}
  for(const s of hostile)rect(s.x,s.y,2,1)
  for(const d of drops){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(d.x),Math.round(d.y),4,4);rect(d.x+1,d.y+1,2,2)}
