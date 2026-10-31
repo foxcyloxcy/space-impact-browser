@@ -49,3 +49,6 @@ A standalone **Level 1 terrain study** and **Level 1 boss silhouette** are imple
 - `app.vue` now uses the same terrain geometry for rendering and collision, and uses deterministic first-stage enemy/boss motion rather than the global sine/random attack behavior.
 - `tests/unit/level-one.test.mjs` covers geometry and obstacle collision, trajectory reproducibility, boss aim and timing conversion.
 - **Historical accuracy remains UNVERIFIED:** parameters are approximations pending lawful emulator/video frame measurements, not measurements from Nokia ROM. Separate weapon-damage physics, pickup pacing, original sound, exact boss silhouettes and full input replay remain outstanding.
+
+## Level 1 historical correction — 2026-11-01
+An independent retrospective reports a blank first-stage background and a boss that moves up/down near the right edge with occasional projectiles: https://www.sohu.com/a/815236246_492137 . We removed our invented Level 1 rocky landscape, disabled terrain collision damage on that stage, and reduced the provisional boss firing rate. Previous ledger entries mentioning Level 1 jagged terrain are **superseded**. These observations are secondary-source evidence; exact timing and pixel parity remain unverified. Other levels retain their existing provisional scenery. No original audio or firmware graphics were imported.
