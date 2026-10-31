@@ -21,16 +21,17 @@
         <div class="actions"><button aria-label="Fire primary weapon" @pointerdown.prevent="press('fire',$event)" @pointerup="release('fire')" @pointercancel="release('fire')" @pointerleave="release('fire')">FIRE</button><button aria-label="Fire limited special weapon" class="special" @pointerdown.prevent="special">SPECIAL</button></div>
       </div>
     </section>
-    <footer><p><strong>Keyboard:</strong> Arrows or WASD to move · Space / 1 / 3 to fire · X / 4 / 6 for special · P or Escape to pause.</p><p>Custom recreation of Nokia-era pixel graphics; original stage patterns and sound are still being researched. An unofficial fan-inspired browser project, not affiliated with Nokia.</p></footer>
+    <footer><p><strong>Keyboard:</strong> Arrows or WASD to move · Tap Space / 1 / 3 to fire · X / 4 / 6 for special · P or Escape to pause.</p><p>Custom recreation of Nokia-era pixel graphics; original stage patterns and sound are still being researched. An unofficial fan-inspired browser project, not affiliated with Nokia.</p></footer>
   </main>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { intersects, advanceStage, useSpecial, nextFireTimer, damage, fixedAdvance } from './game/core/rules.mjs'
+import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './game/core/rules.mjs'
+import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
 
 type Actor = { x:number; y:number; w:number; h:number; hp:number; speed:number; kind?:number; phase?:number }
-type Shot = { x:number; y:number; vx:number; vy:number; special?:boolean }
+type Shot = { x:number; y:number; vx:number; vy:number; special?:boolean; type?:'bomb'|'rocket'|'laser'; ttl?:number }
 type Drop = { x:number; y:number; kind:'life'|'ammo' }
 const canvas = ref<HTMLCanvasElement|null>(null)
 const mode = ref<'ready'|'playing'|'paused'|'gameover'|'won'>('ready')
@@ -42,28 +43,33 @@ let frame=0, last=0, accumulator=0, elapsed=0, spawnTimer=0, fireTimer=0, invuln
 let player:Actor={x:9,y:24,w:7,h:5,hp:1,speed:29}
 let enemies:Actor[]=[], shots:Shot[]=[], hostile:Shot[]=[], drops:Drop[]=[]
 const stars = Array.from({length:12},(_,i)=>({x:(i*23)%W,y:TOP+2+((i*11)%(H-TOP-5)),size:1}))
-const themes=['DUST','ORBIT','CRATER','VOID','ASTEROID','NEBULA','ECLIPSE','CORE']
+const specialTypes=['bomb','rocket','laser'] as const
+let selectedSpecial=0
 function reset() {
-  held.clear();accumulator=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:7,h:5,hp:1,speed:29};stageReset();mode.value='playing'
+  held.clear();accumulator=0;selectedSpecial=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:7,h:5,hp:1,speed:29};stageReset();mode.value='playing'
 }
 function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;spawnIndex=0;stageTime=0;invulnerable=1.5}
 function start(){if(mode.value==='paused'){mode.value='playing';return}reset()}
 function togglePause(){if(mode.value==='playing')mode.value='paused';else if(mode.value==='paused')mode.value='playing'}
-function press(key:string,e?:PointerEvent){if(e?.currentTarget instanceof Element && 'setPointerCapture' in e.currentTarget){try{(e.currentTarget as Element).setPointerCapture(e.pointerId)}catch{}}held.add(key)}
+function press(key:string,e?:PointerEvent){if(key==='fire'){firePrimary();return}if(e?.currentTarget instanceof Element && 'setPointerCapture' in e.currentTarget){try{(e.currentTarget as Element).setPointerCapture(e.pointerId)}catch{}}held.add(key)}
 function release(key:string){held.delete(key)}
 function special(){
  if(mode.value!=='playing'||ammo<=0)return
  ammo=useSpecial(ammo).ammo
- for(const offset of [-.28,0,.28])shots.push({x:player.x+6,y:player.y+2,vx:56,vy:offset*56,special:true})
+ const type=specialTypes[selectedSpecial]
+ if(type==='bomb')shots.push({x:player.x+6,y:player.y+2,vx:28,vy:4,special:true,type,ttl:.9})
+ if(type==='rocket')shots.push({x:player.x+6,y:player.y+2,vx:41,vy:0,special:true,type,ttl:2})
+ if(type==='laser')shots.push({x:player.x+6,y:player.y+2,vx:78,vy:0,special:true,type,ttl:.5})
+ selectedSpecial=(selectedSpecial+1)%specialTypes.length
 }
 function keydown(e:KeyboardEvent){
  const map:Record<string,string>={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',' ':'fire','1':'fire','3':'fire'}
- if(map[e.key]){e.preventDefault();held.add(map[e.key])}
+ if(map[e.key]){e.preventDefault();if(map[e.key]==='fire'){if(!e.repeat && mode.value==='playing')firePrimary()}else held.add(map[e.key])}
  if(!e.repeat && ['x','X','4','6'].includes(e.key))special()
  if(!e.repeat && ['p','P','Escape'].includes(e.key))togglePause()
  if(!e.repeat && e.key==='Enter' && mode.value!=='playing')start()
 }
-function keyup(e:KeyboardEvent){const map:Record<string,string>={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',' ':'fire','1':'fire','3':'fire'};if(map[e.key])held.delete(map[e.key])}
+function keyup(e:KeyboardEvent){const map:Record<string,string>={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',' ':'fire','1':'fire','3':'fire'};if(map[e.key] && map[e.key]!=='fire')held.delete(map[e.key])}
 function overlap(a:{x:number;y:number;w:number;h:number},b:{x:number;y:number;w:number;h:number}){return intersects(a,b)}
 function hit(){
  if(invulnerable>0)return
@@ -71,18 +77,14 @@ function hit(){
  if(lives<=0){mode.value='gameover';saveBest()}
 }
 function saveBest(){if(score.value>best.value){best.value=score.value;try{localStorage.setItem('space-impact-best',String(best.value))}catch{}}}
-// Reproducible formation patterns, not yet verified as the original Nokia wave scripts.
-const formations=[
- [0,2,0,1,2,1,0,2],[1,1,2,0,2,0,1,2],[2,0,1,1,0,2,2,1],[0,2,2,1,0,1,2,0],
- [1,2,0,2,1,0,2,1],[2,1,2,0,1,2,0,1],[0,0,2,1,2,1,0,2],[2,1,0,2,1,0,2,1]
-]
+// The observed game uses authored enemy paths; these events are provisional reconstructions.
 let spawnIndex=0
-function enemySpawn(){
- const kind=formations[stage.value-1][spawnIndex%8]
- const lane=(spawnIndex*7+stage.value*3)%27
- spawnIndex++
- const y=TOP+3+lane
+function enemySpawn(kind:number,y:number){
  enemies.push({x:W+3,y,w:kind===2?8:6,h:kind===2?7:5,hp:kind===2?3:1,speed:11+stage.value*.55,kind,phase:spawnIndex*.8})
+}
+function firePrimary(){
+ if(fireTimer>0)return
+ shots.push({x:player.x+7,y:player.y+2,vx:53,vy:0});fireTimer=.19
 }
 function bossSpawn(){
  bossSpawned=true
@@ -94,11 +96,10 @@ function update(dt:number){
  const dx=Number(held.has('right'))-Number(held.has('left')),dy=Number(held.has('down'))-Number(held.has('up'))
  const next={x:Math.max(1,Math.min(W-player.w-1,player.x+dx*player.speed*dt)),y:Math.max(TOP+1,Math.min(H-player.h-2,player.y+dy*player.speed*dt))}
  player.x=next.x;player.y=next.y
- const firing=nextFireTimer(held.has('fire'),fireTimer)
- if(firing.fired){shots.push({x:player.x+7,y:player.y+2,vx:53,vy:0});fireTimer=firing.timer}
- if(!bossSpawned && stageTime<32){spawnTimer-=dt;if(spawnTimer<=0){enemySpawn();spawnTimer=Math.max(.9,1.7-stage.value*.06)}}
- if(!bossSpawned && stageTime>=32)bossSpawn()
- shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt})
+ // 3310 behavior: primary fire is tapped, not held for unlimited autofire.
+ if(!bossSpawned){const due=eventsDue(stage.value,spawnIndex,stageTime);for(const event of due.events)enemySpawn(event.kind,event.y);spawnIndex=due.index}
+ if(!bossSpawned && stageTime>=STAGE_SCRIPTS[stage.value-1].duration)bossSpawn()
+ shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;if(s.ttl!==undefined)s.ttl-=dt})
  hostile.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt})
  drops.forEach(d=>d.x-=35*dt)
  for(const enemy of enemies){
@@ -112,7 +113,7 @@ function update(dt:number){
  }
  for(const s of shots){
   for(const enemy of enemies){if(enemy.hp>0 && overlap({x:s.x,y:s.y,w:s.special?3:2,h:s.special?2:1},enemy)){
-   enemy.hp-=s.special?4:1;s.x=W+100
+   enemy.hp-=s.type==='laser'?6:s.type==='rocket'?4:s.type==='bomb'?3:1;s.x=W+100
    if(enemy.hp<=0){score.value+=enemy.kind===9?500:enemy.kind===2?30:10
     if(enemy.kind!==9 && Math.random()<.085)drops.push({x:enemy.x,y:enemy.y,kind:Math.random()<.25?'life':'ammo'})
     saveBest()
@@ -121,7 +122,7 @@ function update(dt:number){
  }
  for(const s of hostile){if(overlap({x:s.x,y:s.y,w:2,h:1},player)){hit();s.x=-100}}
  for(const d of drops){if(overlap({x:d.x,y:d.y,w:4,h:4},player)){if(d.kind==='life')lives=Math.min(3,lives+1);else ammo=Math.min(9,ammo+2);d.x=-100}}
- enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>s.x<W+10&&s.y>TOP&&s.y<H);hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
+ enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>s.x<W+10&&s.y>TOP&&s.y<H&&(s.ttl===undefined||s.ttl>0));hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
  if(bossSpawned && !enemies.some(e=>e.kind===9)){const result=advanceStage(stage.value);if(result.won){mode.value='won';saveBest()}else{stage.value=result.stage;stageReset()}}
 }
 function rect(x:number,y:number,w:number,h:number){ctx?.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h)))}
@@ -190,7 +191,7 @@ function draw(){
  if(ammo>0){rect(43,1,3,3);ctx.font='5px monospace';ctx.fillText(String(ammo),47,0)}
  if(invulnerable===0||Math.floor(elapsed*8)%2===0)sprite(player.x,player.y,ship)
  for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,bossArt);else sprite(e.x,e.y,aliens[e.kind||0])}
- for(const s of shots)rect(s.x,s.y,s.special?3:2,1)
+ for(const s of shots){if(s.type==='bomb'){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(s.x),Math.round(s.y),3,3)}else rect(s.x,s.y,s.type==='laser'?8:s.type==='rocket'?4:2,1)}
  for(const s of hostile)rect(s.x,s.y,2,1)
  for(const d of drops){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(d.x),Math.round(d.y),4,4);rect(d.x+1,d.y+1,2,2)}
  if(bossSpawned){const b=enemies.find(e=>e.kind===9);if(b){ctx.fillStyle='#17291e';rect(61,6,Math.max(1,Math.round(21*b.hp/(18+stage.value*7))),1)}}
