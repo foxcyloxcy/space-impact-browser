@@ -11,7 +11,7 @@ Updated: 2026-10-31
 - [x] Added start, pause/resume, game over and win states.
 - [x] Added maintainer README, architecture/game-design/reference docs, scoped skill and AGENTS.md.
 
-## Not yet verified
+## Added during stabilization\n- [x] Added `game/core/rules.mjs` with collision, movement, damage, cooldown, stage, seed and tick helpers.\n- [x] Added `tests/unit/rules.test.mjs` and Playwright browser smoke tests.\n- [x] Added GitHub Actions CI workflow for install, unit test, typecheck, build, Chromium E2E.\n- [x] Added `docs/LEVEL_REFERENCE_MATRIX.md` with all eight stage chapter markers and observation gaps.\n\n## Not yet verified
 - [ ] Production install/build and lint/typecheck in CI.
 - [ ] Actual desktop and mobile browser gameplay.
 - [ ] Touch multitouch, Android/iOS pointer capture and device landscape behavior.
@@ -19,10 +19,10 @@ Updated: 2026-10-31
 - [ ] Deployment URL or live production status.
 
 ## Priority 1: stabilize playable prototype
-- [ ] Add scripts for typecheck, unit and browser E2E tests.
+- [x] Add scripts for typecheck, unit and browser E2E tests (execution pending).
 - [ ] Fix defects found via playtesting, particularly multitouch, overlapping projectile hits and stage transition edge cases.
-- [ ] Refactor game simulation out of app.vue with deterministic fixed timestep.
-- [ ] Add test coverage for controls, collisions, weapons, death and level progression.
+- [~] Extracted pure rules and added a fixed-step loop; full simulation/render/input separation remains.
+- [~] Added nine Node unit tests for base rules, plus Playwright desktop/mobile smoke tests; execution pending.
 
 ## Priority 2: historical gameplay fidelity
 - [ ] Gather timestamped gameplay observations for all eight levels.
