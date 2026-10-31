@@ -10,7 +10,7 @@
           <button @click="start">{{ mode === 'paused' ? 'RESUME' : mode === 'ready' ? 'START GAME' : 'PLAY AGAIN' }}</button>
         </div>
       </div>
-      <div class="toolbar"><span>BEST {{ String(best).padStart(5,'0') }}</span><span>STAGE {{ stage }}/8</span><span>NEXT {{ specialTypes[selectedSpecial.value] }}</span><button @click="toggleSound" :aria-label="muted ? 'Unmute sound' : 'Mute sound'">{{ muted ? 'SOUND OFF' : 'SOUND ON' }}</button><button @click="togglePause" :disabled="mode === 'ready' || mode === 'gameover' || mode === 'won'">{{ mode === 'paused' ? 'RESUME' : 'PAUSE' }}</button></div>
+      <div class="toolbar"><span>BEST {{ String(best).padStart(5,'0') }}</span><span>STAGE {{ stage }}/8</span><span>NEXT {{ specialTypes[selectedSpecial] }}</span><button @click="toggleSound" :aria-label="muted ? 'Unmute sound' : 'Mute sound'">{{ muted ? 'SOUND OFF' : 'SOUND ON' }}</button><button @click="togglePause" :disabled="mode === 'ready' || mode === 'gameover' || mode === 'won'">{{ mode === 'paused' ? 'RESUME' : 'PAUSE' }}</button></div>
       <div class="pad" aria-label="Touch controls">
         <div class="dpad">
           <button class="up" aria-label="Move up" @pointerdown.prevent="press('up',$event)" @pointerup="release('up')" @pointercancel="release('up')" @pointerleave="release('up')">▲</button>
