@@ -96,7 +96,7 @@ function firePrimary(){
 function bossSpawn(){
  bossSpawned=true
  enemies=enemies.filter(e=>e.x<W && e.kind!==9)
- enemies.push({x:W+3,y:14,w:23,h:25,hp:bossProfile(stage.value).hp,speed:7,kind:9,phase:0,age:0,shotTimer:bossProfile(stage.value).cadence})
+ enemies.push({x:W+3,y:14,w:stage.value===1?23:18,h:stage.value===1?25:14,hp:bossProfile(stage.value).hp,speed:7,kind:9,phase:0,age:0,shotTimer:bossProfile(stage.value).cadence})
 }
 function update(dt:number){
  elapsed+=dt;stageTime+=dt;invulnerable=Math.max(0,invulnerable-dt);fireTimer-=dt
@@ -226,7 +226,7 @@ function draw(){
  if(!ctx)return
  ctx.fillStyle='#91b89b';ctx.fillRect(0,0,W,H)
  ctx.fillStyle='#17291e'
- for(const star of stars)rect(((star.x-elapsed*(2+stage.value*.3))%W+W)%W,star.y,1,1)
+ if(stage.value!==1)for(const star of stars)rect(((star.x-elapsed*(2+stage.value*.3))%W+W)%W,star.y,1,1)
  drawTerrain()
  // The original Nokia HUD uses small pictograms plus two-digit level and a five-digit score.
  ctx.fillStyle='#17291e'
