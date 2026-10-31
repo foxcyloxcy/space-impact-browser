@@ -1,7 +1,7 @@
 # Agent Instructions: Space Impact Browser Edition
 
 ## Purpose
-Build and maintain a playable, reference-driven browser adaptation of the original Nokia Space Impact game. Read README.md and docs/{GAME_DESIGN,ARCHITECTURE,ROADMAP,REFERENCES}.md before designing gameplay changes.
+Build and maintain a playable, reference-driven browser adaptation of the original Nokia Space Impact game. Read docs/PROJECT_STATUS.md first, then README.md and docs/{GAME_DESIGN,ARCHITECTURE,ROADMAP,REFERENCES,RECONSTRUCTION_LEDGER}.md before designing gameplay changes.
 
 ## Working principles
 1. Inspect existing code, dependencies, tests, Git state and target environment first. Preserve Nuxt 3/Vue 3/Canvas unless a measured reason to change is documented.
@@ -20,3 +20,6 @@ Use `.agents/skills/retro-game-development/SKILL.md` for game-loop, rendering an
 
 ## Git/deployment
 Prefer small reviewable commits. Don't commit secrets, copyrighted ROMs or binary assets of unknown origin. Production deploy requires a verified build, desktop/mobile smoke testing and working input after browser blur/resume.
+
+## Evidence-backed completion contract (2026-11-01)
+Follow `.agents/skills/milestone-quality-gates/SKILL.md`. Each development task needs one independently verifiable vertical slice, green test/typecheck/build/e2e proof, matching GitHub Pages deployment evidence, and updated `docs/PROJECT_STATUS.md`. Do not claim historical parity without recorded original reference frame/event comparison. Never substitute another planning-only commit for a requested gameplay milestone. The authoritative current canvas is 84×48. If CI fails, diagnose the specific job instead of moving forward.
