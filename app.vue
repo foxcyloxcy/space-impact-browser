@@ -1,9 +1,9 @@
 <template>
   <main class="shell">
-    <header class="heading"><div><p class="eyebrow">RETRO ARCADE / BROWSER EDITION</p><h1>SPACE IMPACT</h1><p class="sub">A monochrome, side-scrolling space shooter inspired by the classic feature-phone game.</p></div><div class="edition">NUXT / CANVAS<br>2026 EDITION</div></header>
+    <header class="heading"><div><p class="eyebrow">RETRO ARCADE / BROWSER EDITION</p><h1>SPACE IMPACT</h1><p class="sub">A closer Nokia 3310-style LCD experience: tiny pixels, classic HUD, eight stages and keypad-inspired controls.</p></div><div class="edition">NUXT / CANVAS<br>2026 EDITION</div></header>
     <section class="machine" aria-label="Space Impact game">
       <div class="screen-wrap">
-        <canvas ref="canvas" width="320" height="200" aria-label="Space Impact playfield" role="img"></canvas>
+        <canvas ref="canvas" width="84" height="48" aria-label="Space Impact playfield" role="img"></canvas>
         <div v-if="mode !== 'playing'" class="overlay">
           <h2>{{ mode === 'gameover' ? 'GAME OVER' : mode === 'paused' ? 'PAUSED' : mode === 'won' ? 'MISSION COMPLETE' : 'SPACE IMPACT' }}</h2>
           <p>{{ mode === 'gameover' ? 'Final score: ' + score : mode === 'won' ? 'All eight sectors cleared!' : mode === 'paused' ? 'Take a break, pilot.' : 'Eight sectors. Eight bosses. One ship.' }}</p>
@@ -21,13 +21,13 @@
         <div class="actions"><button aria-label="Fire primary weapon" @pointerdown.prevent="press('fire',$event)" @pointerup="release('fire')" @pointercancel="release('fire')" @pointerleave="release('fire')">FIRE</button><button aria-label="Fire limited special weapon" class="special" @pointerdown.prevent="special">SPECIAL</button></div>
       </div>
     </section>
-    <footer><p><strong>Keyboard:</strong> Arrows or WASD to move · Space / 1 / 3 to fire · X / 4 / 6 for special · P or Escape to pause.</p><p>Original pixel-style art and gameplay implementation. An unofficial fan-inspired browser project, not affiliated with Nokia.</p></footer>
+    <footer><p><strong>Keyboard:</strong> Arrows or WASD to move · Space / 1 / 3 to fire · X / 4 / 6 for special · P or Escape to pause.</p><p>Custom recreation of Nokia-era pixel graphics; original stage patterns and sound are still being researched. An unofficial fan-inspired browser project, not affiliated with Nokia.</p></footer>
   </main>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { playerWithinBounds, intersects, advanceStage, useSpecial, nextFireTimer, damage, fixedAdvance } from './game/core/rules.mjs'
+import { intersects, advanceStage, useSpecial, nextFireTimer, damage, fixedAdvance } from './game/core/rules.mjs'
 
 type Actor = { x:number; y:number; w:number; h:number; hp:number; speed:number; kind?:number; phase?:number }
 type Shot = { x:number; y:number; vx:number; vy:number; special?:boolean }
@@ -35,18 +35,18 @@ type Drop = { x:number; y:number; kind:'life'|'ammo' }
 const canvas = ref<HTMLCanvasElement|null>(null)
 const mode = ref<'ready'|'playing'|'paused'|'gameover'|'won'>('ready')
 const score = ref(0), best = ref(0), stage = ref(1)
-const W=320,H=200, TOP=20
+const W=84,H=48, TOP=7
 const held = new Set<string>()
 let ctx: CanvasRenderingContext2D | null = null
 let frame=0, last=0, accumulator=0, elapsed=0, spawnTimer=0, fireTimer=0, invulnerable=0, lives=3, ammo=3, bossSpawned=false, stageTime=0
-let player:Actor={x:28,y:99,w:12,h:9,hp:1,speed:105}
+let player:Actor={x:9,y:24,w:7,h:5,hp:1,speed:29}
 let enemies:Actor[]=[], shots:Shot[]=[], hostile:Shot[]=[], drops:Drop[]=[]
-const stars = Array.from({length:35},(_,i)=>({x:(i*83)%W,y:TOP+((i*47)%(H-TOP)),size:i%4===0?2:1}))
+const stars = Array.from({length:12},(_,i)=>({x:(i*23)%W,y:TOP+2+((i*11)%(H-TOP-5)),size:1}))
 const themes=['DUST','ORBIT','CRATER','VOID','ASTEROID','NEBULA','ECLIPSE','CORE']
 function reset() {
-  held.clear();accumulator=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:28,y:99,w:12,h:9,hp:1,speed:105};stageReset();mode.value='playing'
+  held.clear();accumulator=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:7,h:5,hp:1,speed:29};stageReset();mode.value='playing'
 }
-function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;stageTime=0;invulnerable=1.5}
+function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;spawnIndex=0;stageTime=0;invulnerable=1.5}
 function start(){if(mode.value==='paused'){mode.value='playing';return}reset()}
 function togglePause(){if(mode.value==='playing')mode.value='paused';else if(mode.value==='paused')mode.value='playing'}
 function press(key:string,e?:PointerEvent){if(e?.currentTarget instanceof Element && 'setPointerCapture' in e.currentTarget){try{(e.currentTarget as Element).setPointerCapture(e.pointerId)}catch{}}held.add(key)}
@@ -54,7 +54,7 @@ function release(key:string){held.delete(key)}
 function special(){
  if(mode.value!=='playing'||ammo<=0)return
  ammo=useSpecial(ammo).ammo
- for(const offset of [-.35,0,.35])shots.push({x:player.x+11,y:player.y+4,vx:190,vy:offset*190,special:true})
+ for(const offset of [-.28,0,.28])shots.push({x:player.x+6,y:player.y+2,vx:56,vy:offset*56,special:true})
 }
 function keydown(e:KeyboardEvent){
  const map:Record<string,string>={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',' ':'fire','1':'fire','3':'fire'}
@@ -71,31 +71,47 @@ function hit(){
  if(lives<=0){mode.value='gameover';saveBest()}
 }
 function saveBest(){if(score.value>best.value){best.value=score.value;try{localStorage.setItem('space-impact-best',String(best.value))}catch{}}}
-function enemySpawn(){const kind=Math.floor(Math.random()*3);const y=TOP+12+Math.random()*(H-TOP-28);enemies.push({x:W+12,y,w:kind===2?16:12,h:kind===2?13:9,hp:kind===2?3:1,speed:35+stage.value*5+Math.random()*12,kind,phase:Math.random()*6})}
-function bossSpawn(){bossSpawned=true;enemies.push({x:W+10,y:85,w:43,h:36,hp:18+stage.value*7,speed:25,kind:9,phase:0})}
+// Reproducible formation patterns, not yet verified as the original Nokia wave scripts.
+const formations=[
+ [0,2,0,1,2,1,0,2],[1,1,2,0,2,0,1,2],[2,0,1,1,0,2,2,1],[0,2,2,1,0,1,2,0],
+ [1,2,0,2,1,0,2,1],[2,1,2,0,1,2,0,1],[0,0,2,1,2,1,0,2],[2,1,0,2,1,0,2,1]
+]
+let spawnIndex=0
+function enemySpawn(){
+ const kind=formations[stage.value-1][spawnIndex%8]
+ const lane=(spawnIndex*7+stage.value*3)%27
+ spawnIndex++
+ const y=TOP+3+lane
+ enemies.push({x:W+3,y,w:kind===2?8:6,h:kind===2?7:5,hp:kind===2?3:1,speed:11+stage.value*.55,kind,phase:spawnIndex*.8})
+}
+function bossSpawn(){
+ bossSpawned=true
+ enemies=enemies.filter(e=>e.x<W && e.kind!==9)
+ enemies.push({x:W+3,y:14,w:23,h:25,hp:18+stage.value*7,speed:7,kind:9,phase:0})
+}
 function update(dt:number){
  elapsed+=dt;stageTime+=dt;invulnerable=Math.max(0,invulnerable-dt);fireTimer-=dt
  const dx=Number(held.has('right'))-Number(held.has('left')),dy=Number(held.has('down'))-Number(held.has('up'))
- const next=playerWithinBounds(player.x+dx*player.speed*dt,player.y+dy*player.speed*dt,player.w,player.h)
+ const next={x:Math.max(1,Math.min(W-player.w-1,player.x+dx*player.speed*dt)),y:Math.max(TOP+1,Math.min(H-player.h-2,player.y+dy*player.speed*dt))}
  player.x=next.x;player.y=next.y
  const firing=nextFireTimer(held.has('fire'),fireTimer)
- if(firing.fired){shots.push({x:player.x+12,y:player.y+4,vx:185,vy:0});fireTimer=firing.timer}
- if(!bossSpawned && stageTime<23){spawnTimer-=dt;if(spawnTimer<=0){enemySpawn();spawnTimer=Math.max(.42,1.2-stage.value*.065)}}
- if(!bossSpawned && stageTime>=23)bossSpawn()
+ if(firing.fired){shots.push({x:player.x+7,y:player.y+2,vx:53,vy:0});fireTimer=firing.timer}
+ if(!bossSpawned && stageTime<32){spawnTimer-=dt;if(spawnTimer<=0){enemySpawn();spawnTimer=Math.max(.9,1.7-stage.value*.06)}}
+ if(!bossSpawned && stageTime>=32)bossSpawn()
  shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt})
  hostile.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt})
  drops.forEach(d=>d.x-=35*dt)
  for(const enemy of enemies){
   enemy.phase=(enemy.phase||0)+dt
   enemy.x-=enemy.speed*dt
-  if(enemy.kind===1)enemy.y+=Math.sin(enemy.phase*5)*18*dt
-  if(enemy.kind===9){enemy.x=Math.max(263,enemy.x);enemy.y=90+Math.sin(enemy.phase*1.4)*49
-   if(Math.random()<dt*(.7+stage.value*.12))hostile.push({x:enemy.x,y:enemy.y+18,vx:-76-stage.value*4,vy:(player.y-enemy.y)*.27})
-  }else if(enemy.kind===2 && Math.random()<dt*.35)hostile.push({x:enemy.x,y:enemy.y+5,vx:-85,vy:0})
+  if(enemy.kind===1)enemy.y+=Math.sin(enemy.phase*5)*5*dt
+  if(enemy.kind===9){enemy.x=Math.max(60,enemy.x);enemy.y=14+Math.sin(enemy.phase*1.4)*7
+   if(Math.random()<dt*(.7+stage.value*.12))hostile.push({x:enemy.x,y:enemy.y+11,vx:-24-stage.value,vy:(player.y-enemy.y)*.23})
+  }else if(enemy.kind===2 && Math.random()<dt*.35)hostile.push({x:enemy.x,y:enemy.y+3,vx:-26,vy:0})
   if(invulnerable<=0 && overlap(player,enemy))hit()
  }
  for(const s of shots){
-  for(const enemy of enemies){if(enemy.hp>0 && overlap({x:s.x,y:s.y,w:s.special?6:4,h:s.special?4:2},enemy)){
+  for(const enemy of enemies){if(enemy.hp>0 && overlap({x:s.x,y:s.y,w:s.special?3:2,h:s.special?2:1},enemy)){
    enemy.hp-=s.special?4:1;s.x=W+100
    if(enemy.hp<=0){score.value+=enemy.kind===9?500:enemy.kind===2?30:10
     if(enemy.kind!==9 && Math.random()<.085)drops.push({x:enemy.x,y:enemy.y,kind:Math.random()<.25?'life':'ammo'})
@@ -103,31 +119,81 @@ function update(dt:number){
    }break
   }}
  }
- for(const s of hostile){if(overlap({x:s.x,y:s.y,w:4,h:3},player)){hit();s.x=-100}}
- for(const d of drops){if(overlap({x:d.x,y:d.y,w:9,h:9},player)){if(d.kind==='life')lives=Math.min(5,lives+1);else ammo=Math.min(9,ammo+2);d.x=-100}}
+ for(const s of hostile){if(overlap({x:s.x,y:s.y,w:2,h:1},player)){hit();s.x=-100}}
+ for(const d of drops){if(overlap({x:d.x,y:d.y,w:4,h:4},player)){if(d.kind==='life')lives=Math.min(3,lives+1);else ammo=Math.min(9,ammo+2);d.x=-100}}
  enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>s.x<W+10&&s.y>TOP&&s.y<H);hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
  if(bossSpawned && !enemies.some(e=>e.kind===9)){const result=advanceStage(stage.value);if(result.won){mode.value='won';saveBest()}else{stage.value=result.stage;stageReset()}}
 }
-function rect(x:number,y:number,w:number,h:number){ctx?.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h))}
-function sprite(x:number,y:number,rows:string[],scale=1){if(!ctx)return;rows.forEach((line,j)=>{for(let i=0;i<line.length;i++)if(line[i]==='#')rect(x+i*scale,y+j*scale,scale,scale)})}
-const ship=['...##....','..####...','########.','#########','..####...','...##....']
-const alien=['..##..##..','.########.','##########','##.####.##','...#..#...']
+function rect(x:number,y:number,w:number,h:number){ctx?.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h)))}
+function sprite(x:number,y:number,rows:string[],scale=1){
+ if(!ctx)return
+ rows.forEach((line,j)=>{for(let i=0;i<line.length;i++)if(line[i]==='#')rect(x+i*scale,y+j*scale,scale,scale)})
+}
+const ship=['..#....','#.##...','######.','#.##...','..#....']
+const aliens=[
+ ['.#..#.','######','.####.','#.##.#','.#..#.'],
+ ['..##..','.####.','##..##','.####.','.#..#.'],
+ ['..####..','.#.##.#.','########','#.#..#.#','.######.','..#..#..']
+]
+const bossArt=[
+ '..######...............',
+ '.#########.............',
+ '####..######...........',
+ '###############........',
+ '..###.####..####.......',
+ '....##############.....',
+ '...######..########....',
+ '..##########.#######...',
+ '.########.######.#####.',
+ '#######..#######...###.',
+ '###..###########....###',
+ '..########..###########',
+ '...##..###..##########.',
+ '..####..###########.##.',
+ '...#############...##..',
+ '....###.######.....##..',
+ '.....######..###........',
+ '.......#########........',
+ '........##..###.........',
+ '.........##..##.........',
+ '..........####..........',
+ '...........##...........',
+ '...........##...........',
+ '.......................',
+ '.......................'
+]
+function drawTerrain(){
+ if(!ctx)return
+ const phase=elapsed*(5+stage.value*.4)
+ // LCD outlines: horizon, rock arches, stalagmites and repeating stage silhouettes.
+ ctx.strokeStyle='#1b3023';ctx.lineWidth=1
+ ctx.beginPath()
+ for(let x=0;x<W;x++){const v=(x+phase)/7;const base=43-Math.abs(Math.sin(v))* (stage.value%3+2);const cliff=(stage.value===4||stage.value===8)?Math.floor(Math.sin(v*.6)*3):0;const y=Math.round(base+cliff);if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}
+ ctx.stroke()
+ for(let x=0;x<W;x++){const v=(x+phase)/7;const base=43-Math.abs(Math.sin(v))*(stage.value%3+2);rect(x,Math.round(base)+1,1,H-Math.round(base))}
+ if(stage.value>=3){for(let x=0;x<W;x+=12){const px=((x-Math.floor(phase*.8))%W+W)%W;rect(px,7,2,2+(stage.value%3))}}
+}
 function draw(){
  if(!ctx)return
- ctx.fillStyle='#a4c49a';ctx.fillRect(0,0,W,H)
- ctx.fillStyle='#1d3628'
- for(const star of stars)rect((star.x-elapsed*(7+stage.value*2)*(star.size===2?1.5:1)+W*100)%W,star.y,star.size,star.size)
- // Ground silhouette for recognizable scrolling terrain
- for(let x=0;x<W;x+=3){const v=Math.sin((x+elapsed*20)/24)*7+Math.sin((x+elapsed*20)/10)*3;rect(x,H-7-v,3,8+v)}
- ctx.fillStyle='#1d3628';rect(0,0,W,TOP);ctx.fillStyle='#a4c49a'
- ctx.font='bold 9px monospace';ctx.fillText('♥'.repeat(lives),5,13);ctx.fillText('W '+String(stage.value).padStart(2,'0'),82,13);ctx.fillText('S '+ammo,144,13);ctx.fillText(String(score.value).padStart(5,'0'),270,13)
- if(invulnerable===0||Math.floor(elapsed*8)%2===0){ctx.fillStyle='#1d3628';sprite(player.x,player.y,ship,1.5)}
- ctx.fillStyle='#1d3628'
- for(const e of enemies){if(e.kind===9){sprite(e.x,e.y,['..########..','.##########.','############','###..##..###','############','..##.##.##..','...######...','..##....##..'],3)}else sprite(e.x,e.y,alien,e.w/10)}
- for(const s of shots)rect(s.x,s.y,s.special?7:5,s.special?3:2)
- for(const s of hostile)rect(s.x,s.y,4,3)
- for(const d of drops){ctx.strokeStyle='#1d3628';ctx.strokeRect(d.x,d.y,9,9);ctx.fillText(d.kind==='life'?'+':'S',d.x+2,d.y+7)}
- if(bossSpawned){const b=enemies.find(e=>e.kind===9);if(b){rect(92,17,135,2);ctx.fillStyle='#a4c49a';rect(93,17,133*(b.hp/(18+stage.value*7)),2)}}
+ ctx.fillStyle='#91b89b';ctx.fillRect(0,0,W,H)
+ ctx.fillStyle='#17291e'
+ for(const star of stars)rect(((star.x-elapsed*(2+stage.value*.3))%W+W)%W,star.y,1,1)
+ drawTerrain()
+ // The original Nokia HUD uses small pictograms plus two-digit level and a five-digit score.
+ ctx.fillStyle='#17291e'
+ for(let i=0;i<lives;i++)sprite(1+i*5,0,['#.#','###','.#.'])
+ sprite(23,1,['##','#.','##'])
+ ctx.font='bold 6px monospace'
+ ctx.textBaseline='top'
+ ctx.fillText(String(stage.value).padStart(2,'0'),31,0)
+ ctx.fillText(String(score.value%100000).padStart(5,'0'),53,0)
+ if(ammo>0){rect(43,1,3,3);ctx.font='5px monospace';ctx.fillText(String(ammo),47,0)}
+ if(invulnerable===0||Math.floor(elapsed*8)%2===0)sprite(player.x,player.y,ship)
+ for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,bossArt);else sprite(e.x,e.y,aliens[e.kind||0])}
+ for(const s of shots)rect(s.x,s.y,s.special?3:2,1)
+ for(const s of hostile)rect(s.x,s.y,2,1)
+ for(const d of drops){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(d.x),Math.round(d.y),4,4);rect(d.x+1,d.y+1,2,2)}
+ if(bossSpawned){const b=enemies.find(e=>e.kind===9);if(b){ctx.fillStyle='#17291e';rect(61,6,Math.max(1,Math.round(21*b.hp/(18+stage.value*7))),1)}}
 }
 function loop(t:number){const dt=Math.min((t-last)/1000||0,.1);last=t;if(mode.value==='playing'){const steps=fixedAdvance(accumulator,dt);accumulator=steps.accumulator;for(let i=0;i<steps.steps&&mode.value==='playing';i++)update(1/60)}else{accumulator=0}draw();frame=requestAnimationFrame(loop)}
 function blur(){held.clear();if(mode.value==='playing')mode.value='paused'}
@@ -136,5 +202,5 @@ onUnmounted(()=>{cancelAnimationFrame(frame);window.removeEventListener('keydown
 </script>
 
 <style>
-:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:#0c1712;color:#d2e6ca}.shell{max-width:900px;margin:0 auto;padding:25px 20px 35px}.heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:20px}h1{font-size:clamp(30px,6vw,58px);line-height:1;margin:9px 0;letter-spacing:.06em}.eyebrow{font-size:11px;letter-spacing:.2em;color:#a0ba96}.sub{font-size:12px;line-height:1.6;color:#a8b9a3}.edition{text-align:right;font-size:10px;line-height:1.7;white-space:nowrap;color:#93b18a}.machine{border:2px solid #4e7152;border-radius:20px;padding:18px;background:#263d30;box-shadow:0 18px 60px #0008}.screen-wrap{position:relative;overflow:hidden;border:12px solid #15291e;border-radius:9px;aspect-ratio:8/5;background:#a4c49a}.screen-wrap canvas{display:block;width:100%;height:100%;image-rendering:pixelated}.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#a4c49ae8;color:#1d3628;padding:12px}.overlay h2{font-size:clamp(20px,5vw,42px);letter-spacing:.06em;margin:0}.overlay p{font-size:clamp(9px,2vw,14px)}button{cursor:pointer;font:inherit;font-weight:800;touch-action:none}.overlay button{background:#1d3628;color:#c0d9ad;border:0;padding:12px 20px;margin-top:8px}.toolbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:15px 3px}.toolbar button{border:1px solid #8eae87;border-radius:5px;background:transparent;color:inherit;padding:7px 12px}.toolbar button:disabled{opacity:.4}.pad{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:130px}.dpad{display:grid;grid-template-columns:repeat(3,43px);grid-template-rows:repeat(3,38px);gap:3px}.dpad button,.actions button{border:1px solid #8baa88;background:#14261b;color:#c4e5b8;border-radius:8px;user-select:none;-webkit-user-select:none}.dpad button:active,.actions button:active{background:#527453}.up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.right{grid-column:3;grid-row:2}.down{grid-column:2;grid-row:3}.actions{display:flex;gap:10px}.actions button{width:88px;height:64px}.actions .special{border-color:#d1c28e;color:#efe0a0}footer{font-size:11px;line-height:1.7;color:#a1b39f;margin-top:17px}footer p{margin:8px 0}@media(min-width:800px){.machine{padding:25px 35px}.pad{justify-content:space-around}}@media(max-width:470px){.shell{padding:15px 10px}.edition{display:none}.machine{padding:9px;border-radius:12px}.screen-wrap{border-width:6px}.actions{gap:5px}.actions button{width:65px;height:56px;font-size:10px}.toolbar{font-size:10px}.dpad{grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,34px)}}
+:root{color-scheme:dark;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:#0c1712;color:#d2e6ca}.shell{max-width:780px;margin:0 auto;padding:25px 20px 35px}.heading{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:20px}h1{font-size:clamp(30px,6vw,58px);line-height:1;margin:9px 0;letter-spacing:.06em}.eyebrow{font-size:11px;letter-spacing:.2em;color:#a0ba96}.sub{font-size:12px;line-height:1.6;color:#a8b9a3}.edition{text-align:right;font-size:10px;line-height:1.7;white-space:nowrap;color:#93b18a}.machine{border:2px solid #4e7152;border-radius:20px;padding:18px;background:#263d30;box-shadow:0 18px 60px #0008}.screen-wrap{position:relative;overflow:hidden;border:12px solid #15291e;border-radius:9px;aspect-ratio:84/48;background:#a4c49a}.screen-wrap canvas{display:block;width:100%;height:100%;image-rendering:pixelated}.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#a4c49ae8;color:#1d3628;padding:12px}.overlay h2{font-size:clamp(20px,5vw,42px);letter-spacing:.06em;margin:0}.overlay p{font-size:clamp(9px,2vw,14px)}button{cursor:pointer;font:inherit;font-weight:800;touch-action:none}.overlay button{background:#1d3628;color:#c0d9ad;border:0;padding:12px 20px;margin-top:8px}.toolbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:15px 3px}.toolbar button{border:1px solid #8eae87;border-radius:5px;background:transparent;color:inherit;padding:7px 12px}.toolbar button:disabled{opacity:.4}.pad{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:130px}.dpad{display:grid;grid-template-columns:repeat(3,43px);grid-template-rows:repeat(3,38px);gap:3px}.dpad button,.actions button{border:1px solid #8baa88;background:#14261b;color:#c4e5b8;border-radius:8px;user-select:none;-webkit-user-select:none}.dpad button:active,.actions button:active{background:#527453}.up{grid-column:2;grid-row:1}.left{grid-column:1;grid-row:2}.right{grid-column:3;grid-row:2}.down{grid-column:2;grid-row:3}.actions{display:flex;gap:10px}.actions button{width:88px;height:64px}.actions .special{border-color:#d1c28e;color:#efe0a0}footer{font-size:11px;line-height:1.7;color:#a1b39f;margin-top:17px}footer p{margin:8px 0}@media(min-width:800px){.machine{padding:25px 35px}.pad{justify-content:space-around}}@media(max-width:470px){.shell{padding:15px 10px}.edition{display:none}.machine{padding:9px;border-radius:12px}.screen-wrap{border-width:6px}.actions{gap:5px}.actions button{width:65px;height:56px;font-size:10px}.toolbar{font-size:10px}.dpad{grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,34px)}}
 </style>
