@@ -29,7 +29,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './game/core/rules.mjs'
 import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
-import { LEVEL_ONE, levelOneTerrainCollision, levelOneEnemyY, levelOneBossPosition, levelOneBossShot, levelOneTerrainHeight, levelOneCeilingHeight } from './game/levels/level-one.mjs'
+import { LEVEL_ONE, levelOneTerrainCollision, levelOneEnemyY, levelOneBossPosition, levelOneBossShot } from './game/levels/level-one.mjs'
 
 type Actor = { x:number; y:number; w:number; h:number; hp:number; speed:number; kind?:number; phase?:number; originY?:number; age?:number; shotTimer?:number }
 type Shot = { x:number; y:number; vx:number; vy:number; special?:boolean; type?:'bomb'|'rocket'|'laser'; ttl?:number }
@@ -124,7 +124,7 @@ function update(dt:number){
    }break
   }}
  }
- if(stage.value===1 && levelOneTerrainCollision(player,elapsed*LEVEL_ONE.scrollSpeed))hit()
+ if(stage.value===1 && LEVEL_ONE.terrainDamage && levelOneTerrainCollision(player,elapsed*LEVEL_ONE.scrollSpeed))hit()
  for(const s of hostile){if(overlap({x:s.x,y:s.y,w:2,h:1},player)){hit();s.x=-100}}
  for(const d of drops){if(overlap({x:d.x,y:d.y,w:4,h:4},player)){if(d.kind==='life')lives=Math.min(3,lives+1);else ammo=Math.min(9,ammo+2);d.x=-100}}
  enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>s.x<W+10&&s.y>TOP&&s.y<H&&(s.ttl===undefined||s.ttl>0));hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
@@ -199,19 +199,7 @@ const bossArt=[
 ]
 function drawTerrain(){
  if(!ctx)return
- if(stage.value===1){
-  // Independent low-resolution stage-one terrain concept: jagged silhouettes
-  // and isolated high ledges. Exact locations and collisions still await MAME traces.
-  const scroll=Math.floor(elapsed*5)
-  ctx.fillStyle='#17291e'
-  for(let x=0;x<W;x++){
-   const world=x+scroll
-   const ridge=levelOneTerrainHeight(world)
-   rect(x,ridge,1,H-ridge)
-   if(Math.floor(world/29)%3===1 && world%29<8)rect(x,8,1,levelOneCeilingHeight(world))
-  }
-  return
- }
+ if(stage.value===1)return // Level 1 has a plain background in the available historical reference.
  const phase=elapsed*(5+stage.value*.4)
  // LCD outlines: horizon, rock arches, stalagmites and repeating stage silhouettes.
  ctx.strokeStyle='#1b3023';ctx.lineWidth=1
