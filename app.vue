@@ -10,7 +10,7 @@
           <button @click="start">{{ mode === 'paused' ? 'RESUME' : mode === 'ready' ? 'START GAME' : 'PLAY AGAIN' }}</button>
         </div>
       </div>
-      <div class="toolbar"><span>BEST {{ String(best).padStart(5,'0') }}</span><span>STAGE {{ stage }}/8</span><button @click="togglePause" :disabled="mode === 'ready' || mode === 'gameover' || mode === 'won'">{{ mode === 'paused' ? 'RESUME' : 'PAUSE' }}</button></div>
+      <div class="toolbar"><span>BEST {{ String(best).padStart(5,'0') }}</span><span>STAGE {{ stage }}/8</span><button @click="toggleSound" :aria-label="muted ? 'Unmute sound' : 'Mute sound'">{{ muted ? 'SOUND OFF' : 'SOUND ON' }}</button><button @click="togglePause" :disabled="mode === 'ready' || mode === 'gameover' || mode === 'won'">{{ mode === 'paused' ? 'RESUME' : 'PAUSE' }}</button></div>
       <div class="pad" aria-label="Touch controls">
         <div class="dpad">
           <button class="up" aria-label="Move up" @pointerdown.prevent="press('up',$event)" @pointerup="release('up')" @pointercancel="release('up')" @pointerleave="release('up')">▲</button>
@@ -40,7 +40,7 @@ type Shot = { x:number; y:number; vx:number; vy:number; special?:boolean; type?:
 type Drop = { x:number; y:number; kind:'life'|'ammo' }
 const canvas = ref<HTMLCanvasElement|null>(null)
 const mode = ref<'ready'|'playing'|'paused'|'gameover'|'won'>('ready')
-const score = ref(0), best = ref(0), stage = ref(1)
+const score = ref(0), best = ref(0), stage = ref(1), muted = ref(false)
 const W=84,H=48, TOP=7
 const held = new Set<string>()
 let ctx: CanvasRenderingContext2D | null = null
@@ -49,6 +49,7 @@ let player:Actor={x:9,y:24,w:7,h:5,hp:1,speed:29}
 let enemies:Actor[]=[], shots:Shot[]=[], hostile:Shot[]=[], drops:Drop[]=[]
 const stars = Array.from({length:12},(_,i)=>({x:(i*23)%W,y:TOP+2+((i*11)%(H-TOP-5)),size:1}))
 const audioFeedback=createAudioFeedback()
+function toggleSound(){muted.value=!muted.value;audioFeedback.setMuted(muted.value)}
 const specialTypes=['bomb','rocket','laser'] as const
 let selectedSpecial=0
 function reset() {
