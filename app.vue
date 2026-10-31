@@ -30,6 +30,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './game/core/rules.mjs'
 import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
 import { bossProfile, bossPosition, bossProjectiles, bossSprite } from './game/content/bosses.mjs'
+import { createAudioFeedback } from './game/audio/feedback.mjs'
 import { createProjectile, sweptShotHit, applyHit, activeProjectile, advanceProjectile } from './game/core/combat.mjs'
 import { LEVEL_ONE, levelOneTerrainCollision, levelOneEnemyY, levelOneBossPosition, levelOneBossShot } from './game/levels/level-one.mjs'
 
@@ -46,18 +47,20 @@ let frame=0, last=0, accumulator=0, elapsed=0, spawnTimer=0, fireTimer=0, invuln
 let player:Actor={x:9,y:24,w:7,h:5,hp:1,speed:29}
 let enemies:Actor[]=[], shots:Shot[]=[], hostile:Shot[]=[], drops:Drop[]=[]
 const stars = Array.from({length:12},(_,i)=>({x:(i*23)%W,y:TOP+2+((i*11)%(H-TOP-5)),size:1}))
+const audioFeedback=createAudioFeedback()
 const specialTypes=['bomb','rocket','laser'] as const
 let selectedSpecial=0
 function reset() {
   held.clear();accumulator=0;selectedSpecial=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:7,h:5,hp:1,speed:29};stageReset();mode.value='playing'
 }
 function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;spawnIndex=0;stageTime=0;invulnerable=1.5}
-function start(){if(mode.value==='paused'){mode.value='playing';return}reset()}
+function start(){audioFeedback.unlock();if(mode.value==='paused'){mode.value='playing';return}reset()}
 function togglePause(){if(mode.value==='playing')mode.value='paused';else if(mode.value==='paused')mode.value='playing'}
 function press(key:string,e?:PointerEvent){if(key==='fire'){if(mode.value==='playing')firePrimary();return}if(e?.currentTarget instanceof Element && 'setPointerCapture' in e.currentTarget){try{(e.currentTarget as Element).setPointerCapture(e.pointerId)}catch{}}held.add(key)}
 function release(key:string){held.delete(key)}
 function special(){
  if(mode.value!=='playing'||ammo<=0)return
+ audioFeedback.special()
  ammo=useSpecial(ammo).ammo
  const type=specialTypes[selectedSpecial]
  shots.push(createProjectile(type,player.x+6,player.y+2))
@@ -75,6 +78,7 @@ function overlap(a:{x:number;y:number;w:number;h:number},b:{x:number;y:number;w:
 function hit(){
  if(invulnerable>0)return
  const result=damage(lives,invulnerable);lives=result.lives;invulnerable=result.invulnerability
+ audioFeedback.damage()
  if(lives<=0){mode.value='gameover';saveBest()}
 }
 function saveBest(){if(score.value>best.value){best.value=score.value;try{localStorage.setItem('space-impact-best',String(best.value))}catch{}}}
@@ -85,6 +89,7 @@ function enemySpawn(kind:number,y:number){
 }
 function firePrimary(){
  if(mode.value!=='playing'||fireTimer>0)return
+ audioFeedback.fire()
  shots.push(createProjectile('primary',player.x+7,player.y+2));fireTimer=.19
 }
 function bossSpawn(){
@@ -124,7 +129,7 @@ function update(dt:number){
  for(const s of shots){
   for(const enemy of enemies){if(enemy.hp>0 && sweptShotHit(s,enemy,dt)){
    enemy.hp=applyHit(enemy,s).hp;s.x=W+100
-   if(enemy.hp<=0){score.value+=enemy.kind===9?500:enemy.kind===2?30:10
+   if(enemy.hp<=0){audioFeedback.enemy();score.value+=enemy.kind===9?500:enemy.kind===2?30:10
     if(enemy.kind!==9 && Math.random()<.085)drops.push({x:enemy.x,y:enemy.y,kind:Math.random()<.25?'life':'ammo'})
     saveBest()
    }break
@@ -135,7 +140,7 @@ function update(dt:number){
  for(const s of hostile){if(overlap({x:s.x,y:s.y,w:2,h:1},player)){hit();s.x=-100}}
  for(const d of drops){if(overlap({x:d.x,y:d.y,w:4,h:4},player)){if(d.kind==='life')lives=Math.min(3,lives+1);else ammo=Math.min(9,ammo+2);d.x=-100}}
  enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>activeProjectile(s,W,H,TOP));hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
- if(bossSpawned && !enemies.some(e=>e.kind===9)){const result=advanceStage(stage.value);if(result.won){mode.value='won';saveBest()}else{stage.value=result.stage;stageReset()}}
+ if(bossSpawned && !enemies.some(e=>e.kind===9)){const result=advanceStage(stage.value);if(result.won){mode.value='won';audioFeedback.stage();saveBest()}else{audioFeedback.stage();stage.value=result.stage;stageReset()}}
 }
 function rect(x:number,y:number,w:number,h:number){ctx?.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h)))}
 function sprite(x:number,y:number,rows:readonly string[],scale=1){
@@ -241,7 +246,7 @@ function draw(){
 function loop(t:number){const dt=Math.min((t-last)/1000||0,.1);last=t;if(mode.value==='playing'){const steps=fixedAdvance(accumulator,dt);accumulator=steps.accumulator;for(let i=0;i<steps.steps&&mode.value==='playing';i++)update(1/60)}else{accumulator=0}draw();frame=requestAnimationFrame(loop)}
 function blur(){held.clear();if(mode.value==='playing')mode.value='paused'}
 onMounted(()=>{ctx=canvas.value?.getContext('2d')||null;if(ctx)ctx.imageSmoothingEnabled=false;try{best.value=Number(localStorage.getItem('space-impact-best'))||0}catch{};window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',blur);frame=requestAnimationFrame(loop)})
-onUnmounted(()=>{cancelAnimationFrame(frame);window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);held.clear()})
+onUnmounted(()=>{cancelAnimationFrame(frame);window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);held.clear();audioFeedback.dispose()})
 </script>
 
 <style>
