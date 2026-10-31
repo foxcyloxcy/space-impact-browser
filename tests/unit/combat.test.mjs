@@ -19,7 +19,12 @@ test('damage is bounded and defeat reports once',()=>{
 test('spent shots expire and do not survive the playfield',()=>{
  const shot=createProjectile('bomb',10,20)
  const moved=advanceProjectile(shot,1)
- assert.equal(activeProjectile(moved),false)
+ assert.equal(activeProjectile(moved),true)
+ assert.equal(activeProjectile(advanceProjectile(shot,4)),false)
  assert.equal(activeProjectile(createProjectile('primary',10,20)),true)
  assert.equal(activeProjectile({...shot,x:90}),false)
+ for(const type of ['bomb','rocket','laser']){
+  const special=createProjectile(type,10,20)
+  assert.equal(activeProjectile(advanceProjectile(special,.5)),true)
+ }
 })
