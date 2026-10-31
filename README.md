@@ -39,7 +39,7 @@ Controls are a practical web mapping. Original handset keys are documented in `d
 - `AGENTS.md`: project-specific instructions for contributors and coding agents.
 - `.agents/skills/retro-game-development/SKILL.md`: focused, local game implementation guidance.
 
-## Next development milestone
+## Verification commands\n\n```bash\nyarn install\nyarn test\nyarn typecheck\nyarn build\nnpx playwright install chromium\nyarn test:e2e\n```\n\nThese scripts and CI checks were added on 2026-10-31; they have not yet been confirmed passing. The existing Yarn lockfile has not been regenerated, so run `yarn install` before attempting a frozen-lockfile CI build.\n\nSee `docs/LEVEL_REFERENCE_MATRIX.md` for the recording-by-recording stage comparison plan.\n\n## Next development milestone
 
 Refactor the single-file game into a deterministic TypeScript simulation, renderer and input adapter, then create reference-verified wave data and pixel assets. Add unit and browser E2E tests (including touch), run a production build and test on real mobile screen sizes before deployment. Do not report any feature as tested until it has actually been tested.
 
