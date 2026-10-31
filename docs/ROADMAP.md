@@ -53,3 +53,11 @@ Accounts, cloud leaderboards, multiplayer, monetization, paid APIs or migrating 
 - [ ] Obtain lawful reference footage/firmware-derived observations for each stage, then independently implement and compare frames.
 - [ ] Match all eight bosses and original terrain geometry, collisions, powerups, score rules and audio.
 - [ ] Run screenshot diffs and input trace replay before any 'exact recreation' claim.
+
+## 2026-11-01 reference parity work
+- [x] Add stage-by-stage evidence ledger with Level 1 capture procedure: `docs/RECONSTRUCTION_LEDGER.md`.
+- [x] Add source-provenance, display bounds, independent-review validation and frame-event diff helpers: `game/reference/verification.mjs`.
+- [x] Add unit tests covering all eight stage evidence placeholders, review gates and event matching.
+- [ ] Obtain lawful original emulator footage/firmware observations; no original 3310 frame fixtures have been captured yet.
+- [ ] Reconstruct and independently validate Level 1 enemy waves, terrain, unique boss and audio; repeat for levels 2–8.
+- [ ] Verify CI, live GitHub Pages and input trace parity before claiming exact recreation.
