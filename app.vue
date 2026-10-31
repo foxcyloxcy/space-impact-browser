@@ -29,6 +29,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './game/core/rules.mjs'
 import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
+import { createProjectile, sweptShotHit, applyHit, activeProjectile, advanceProjectile } from './game/core/combat.mjs'
 import { LEVEL_ONE, levelOneTerrainCollision, levelOneEnemyY, levelOneBossPosition, levelOneBossShot } from './game/levels/level-one.mjs'
 
 type Actor = { x:number; y:number; w:number; h:number; hp:number; speed:number; kind?:number; phase?:number; originY?:number; age?:number; shotTimer?:number }
@@ -52,15 +53,13 @@ function reset() {
 function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;spawnIndex=0;stageTime=0;invulnerable=1.5}
 function start(){if(mode.value==='paused'){mode.value='playing';return}reset()}
 function togglePause(){if(mode.value==='playing')mode.value='paused';else if(mode.value==='paused')mode.value='playing'}
-function press(key:string,e?:PointerEvent){if(key==='fire'){firePrimary();return}if(e?.currentTarget instanceof Element && 'setPointerCapture' in e.currentTarget){try{(e.currentTarget as Element).setPointerCapture(e.pointerId)}catch{}}held.add(key)}
+function press(key:string,e?:PointerEvent){if(key==='fire'){if(mode.value==='playing')firePrimary();return}if(e?.currentTarget instanceof Element && 'setPointerCapture' in e.currentTarget){try{(e.currentTarget as Element).setPointerCapture(e.pointerId)}catch{}}held.add(key)}
 function release(key:string){held.delete(key)}
 function special(){
  if(mode.value!=='playing'||ammo<=0)return
  ammo=useSpecial(ammo).ammo
  const type=specialTypes[selectedSpecial]
- if(type==='bomb')shots.push({x:player.x+6,y:player.y+2,vx:28,vy:4,special:true,type,ttl:.9})
- if(type==='rocket')shots.push({x:player.x+6,y:player.y+2,vx:41,vy:0,special:true,type,ttl:2})
- if(type==='laser')shots.push({x:player.x+6,y:player.y+2,vx:78,vy:0,special:true,type,ttl:.5})
+ shots.push(createProjectile(type,player.x+6,player.y+2))
  selectedSpecial=(selectedSpecial+1)%specialTypes.length
 }
 function keydown(e:KeyboardEvent){
@@ -84,8 +83,8 @@ function enemySpawn(kind:number,y:number){
  enemies.push({x:W+3,y,w:kind===2?8:6,h:kind===2?7:5,hp:kind===2?3:1,speed:stage.value===1?LEVEL_ONE.enemySpeed:11+stage.value*.55,kind,phase:spawnIndex*.8,originY:y,age:0})
 }
 function firePrimary(){
- if(fireTimer>0)return
- shots.push({x:player.x+7,y:player.y+2,vx:53,vy:0});fireTimer=.19
+ if(mode.value!=='playing'||fireTimer>0)return
+ shots.push(createProjectile('primary',player.x+7,player.y+2));fireTimer=.19
 }
 function bossSpawn(){
  bossSpawned=true
@@ -100,7 +99,7 @@ function update(dt:number){
  // 3310 behavior: primary fire is tapped, not held for unlimited autofire.
  if(!bossSpawned){const due=eventsDue(stage.value,spawnIndex,stageTime);for(const event of due.events)enemySpawn(event.kind,event.y);spawnIndex=due.index}
  if(!bossSpawned && stageTime>=STAGE_SCRIPTS[stage.value-1].duration)bossSpawn()
- shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;if(s.ttl!==undefined)s.ttl-=dt})
+ // Projectile collisions are checked along the full motion path below.
  hostile.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt})
  drops.forEach(d=>d.x-=35*dt)
  for(const enemy of enemies){
@@ -116,18 +115,19 @@ function update(dt:number){
   if(invulnerable<=0 && overlap(player,enemy))hit()
  }
  for(const s of shots){
-  for(const enemy of enemies){if(enemy.hp>0 && overlap({x:s.x,y:s.y,w:s.special?3:2,h:s.special?2:1},enemy)){
-   enemy.hp-=s.type==='laser'?6:s.type==='rocket'?4:s.type==='bomb'?3:1;s.x=W+100
+  for(const enemy of enemies){if(enemy.hp>0 && sweptShotHit(s,enemy,dt)){
+   enemy.hp=applyHit(enemy,s).hp;s.x=W+100
    if(enemy.hp<=0){score.value+=enemy.kind===9?500:enemy.kind===2?30:10
     if(enemy.kind!==9 && Math.random()<.085)drops.push({x:enemy.x,y:enemy.y,kind:Math.random()<.25?'life':'ammo'})
     saveBest()
    }break
   }}
  }
+ for(const shot of shots){if(shot.x<=W)Object.assign(shot,advanceProjectile(shot,dt))}
  if(stage.value===1 && LEVEL_ONE.terrainDamage && levelOneTerrainCollision(player,elapsed*LEVEL_ONE.scrollSpeed))hit()
  for(const s of hostile){if(overlap({x:s.x,y:s.y,w:2,h:1},player)){hit();s.x=-100}}
  for(const d of drops){if(overlap({x:d.x,y:d.y,w:4,h:4},player)){if(d.kind==='life')lives=Math.min(3,lives+1);else ammo=Math.min(9,ammo+2);d.x=-100}}
- enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>s.x<W+10&&s.y>TOP&&s.y<H&&(s.ttl===undefined||s.ttl>0));hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
+ enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>activeProjectile(s,W,H,TOP));hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
  if(bossSpawned && !enemies.some(e=>e.kind===9)){const result=advanceStage(stage.value);if(result.won){mode.value='won';saveBest()}else{stage.value=result.stage;stageReset()}}
 }
 function rect(x:number,y:number,w:number,h:number){ctx?.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h)))}
