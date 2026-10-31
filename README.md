@@ -50,3 +50,7 @@ Unofficial fan-inspired project. Space Impact and Nokia names belong to their re
 ## Historical fidelity work (2026-10-31)
 
 See `docs/HISTORICAL_FIDELITY_AUDIT.md` for original Nokia keypad evidence and implemented/unknown distinctions. Stage-specific, editable enemy scripts now live in `game/content/stages.mjs`; their timings, enemy paths, terrain and boss graphics remain **provisional reconstructions**, not exact footage transcriptions. The release uses Nuxt 3, and GitHub Pages deployments are automatic from main.
+
+## Exactness audit
+
+Read [Nokia 3310 fidelity verification specification](docs/VERIFICATION_STANDARD.md). This project currently reproduces the 84×48 display and high-level arcade behavior, but **cannot honestly be described as an exact Nokia 3310 clone**. Original MAME/firmware frame comparisons, eight verified wave sequences, sprites, obstacles, bosses, and sounds remain incomplete. No ROM assets are bundled.
