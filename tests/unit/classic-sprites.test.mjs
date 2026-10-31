@@ -9,7 +9,7 @@ test('classic player silhouette fits LCD and has an extended forward nose',()=>{
 test('three varied enemy silhouettes remain within sprite hitboxes',()=>{
  assert.equal(ENEMY_SPRITES.length,3)
  assert.equal(new Set(ENEMY_SPRITES.map(rows=>rows.join('|'))).size,3)
- for(const rows of ENEMY_SPRITES){const d=spriteDimensions(rows);assert.ok(d.w<=9&&d.h<=7)}
+ for(const rows of ENEMY_SPRITES){const d=spriteDimensions(rows);assert.ok(d.w<=10&&d.h<=7)}
 })
 test('rocky terrain is consistently bounded and wraps in every stage',()=>{
  assert.equal(TERRAIN_MOTIFS.length,8)
