@@ -88,7 +88,7 @@ function saveBest(){if(score.value>best.value){best.value=score.value;try{localS
 // The observed game uses authored enemy paths; these events are provisional reconstructions.
 let spawnIndex=0
 function enemySpawn(kind:number,y:number){
- enemies.push({x:W+3,y,w:9,h:7,hp:kind===2?3:1,speed:stage.value===1?LEVEL_ONE.enemySpeed:11+stage.value*.55,kind,phase:spawnIndex*.8,originY:y,age:0})
+ enemies.push({x:W+3,y,w:kind===2?10:9,h:7,hp:kind===2?3:1,speed:stage.value===1?LEVEL_ONE.enemySpeed:11+stage.value*.55,kind,phase:spawnIndex*.8,originY:y,age:0})
 }
 function firePrimary(){
  if(mode.value!=='playing'||fireTimer>0)return
