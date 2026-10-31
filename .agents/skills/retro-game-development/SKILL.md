@@ -8,7 +8,7 @@ Use for changes to movement, weapons, enemies, waves, bosses, menus, Canvas rend
 
 1. Start with `AGENTS.md`, `docs/GAME_DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/REFERENCES.md`.
 2. Reproduce the issue and distinguish a historical behavior from an accessibility/browser adaptation.
-3. Keep a 320x200 **current virtual canvas** until a design review changes it; never label this the original Nokia hardware resolution.
+3. Use the currently implemented 84×48 Nokia 3310-class canvas. Confirm dimensions from current code before editing; do not silently revert them. Visual fidelity still requires golden-frame comparison.
 4. Separate pure world update and rendering. Apply fixed timestep and seedable randomness during the planned refactor.
 5. Prefer data tables for level sequences, enemy paths, bosses and weapons over scattered timing constants.
 6. Cover keyboard and touch concurrently. Hold inputs must release on pointercancel, blur and teardown; test multitouch.
