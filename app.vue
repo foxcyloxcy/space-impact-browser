@@ -138,7 +138,7 @@ function update(dt:number){
  if(bossSpawned && !enemies.some(e=>e.kind===9)){const result=advanceStage(stage.value);if(result.won){mode.value='won';saveBest()}else{stage.value=result.stage;stageReset()}}
 }
 function rect(x:number,y:number,w:number,h:number){ctx?.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h)))}
-function sprite(x:number,y:number,rows:string[],scale=1){
+function sprite(x:number,y:number,rows:readonly string[],scale=1){
  if(!ctx)return
  rows.forEach((line,j)=>{for(let i=0;i<line.length;i++)if(line[i]==='#')rect(x+i*scale,y+j*scale,scale,scale)})
 }
