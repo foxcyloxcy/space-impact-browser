@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {WORLD,STAGE_COUNT,intersects,playerWithinBounds,advanceStage,damage,useSpecial,nextFireTimer,makeRandom,fixedAdvance} from '../../game/core/rules.mjs'
-test('world and level baseline',()=>{assert.equal(WORLD.width,320);assert.equal(STAGE_COUNT,8)})
-test('clamps player inside visible playfield',()=>{assert.deepEqual(playerWithinBounds(-50,-50),{x:2,y:22});assert.deepEqual(playerWithinBounds(999,999),{x:306,y:189})})
+test('world and level baseline',()=>{assert.equal(WORLD.width,84);assert.equal(STAGE_COUNT,8)})
+test('clamps player inside visible playfield',()=>{assert.deepEqual(playerWithinBounds(-50,-50),{x:1,y:8});assert.deepEqual(playerWithinBounds(999,999),{x:76,y:41})})
 test('AABB collision excludes only-touching edges',()=>{assert.equal(intersects({x:0,y:0,w:10,h:10},{x:10,y:0,w:2,h:2}),false);assert.equal(intersects({x:0,y:0,w:10,h:10},{x:9,y:9,w:2,h:2}),true)})
 test('lives decrement once per invulnerability window',()=>{const first=damage(3,0);assert.deepEqual(first,{lives:2,invulnerability:1.8});assert.deepEqual(damage(first.lives,first.invulnerability),first)})
 test('special consumes one charge only when available',()=>{assert.deepEqual(useSpecial(1),{ammo:0,fired:true});assert.deepEqual(useSpecial(0),{ammo:0,fired:false})})
