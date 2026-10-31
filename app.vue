@@ -30,6 +30,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './game/core/rules.mjs'
 import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
 import { bossProfile, bossPosition, bossProjectiles, bossSprite } from './game/content/bosses.mjs'
+import { sceneForStage, sceneryAt } from './game/content/scenery.mjs'
 import { createAudioFeedback } from './game/audio/feedback.mjs'
 import { createProjectile, sweptShotHit, applyHit, activeProjectile, advanceProjectile } from './game/core/combat.mjs'
 import { LEVEL_ONE, levelOneTerrainCollision, levelOneEnemyY, levelOneBossPosition, levelOneBossShot } from './game/levels/level-one.mjs'
@@ -211,15 +212,15 @@ const bossArt=[
 ]
 function drawTerrain(){
  if(!ctx)return
- if(stage.value===1)return // Level 1 has a plain background in the available historical reference.
- const phase=elapsed*(5+stage.value*.4)
- // LCD outlines: horizon, rock arches, stalagmites and repeating stage silhouettes.
- ctx.strokeStyle='#1b3023';ctx.lineWidth=1
- ctx.beginPath()
- for(let x=0;x<W;x++){const v=(x+phase)/7;const base=43-Math.abs(Math.sin(v))* (stage.value%3+2);const cliff=(stage.value===4||stage.value===8)?Math.floor(Math.sin(v*.6)*3):0;const y=Math.round(base+cliff);if(x===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}
- ctx.stroke()
- for(let x=0;x<W;x++){const v=(x+phase)/7;const base=43-Math.abs(Math.sin(v))*(stage.value%3+2);rect(x,Math.round(base)+1,1,H-Math.round(base))}
- if(stage.value>=3){for(let x=0;x<W;x+=12){const px=((x-Math.floor(phase*.8))%W+W)%W;rect(px,7,2,2+(stage.value%3))}}
+ const scene=sceneForStage(stage.value)
+ if(!scene.floor)return
+ const scroll=Math.floor(elapsed*scene.speed)
+ ctx.fillStyle='#17291e'
+ for(let x=0;x<W;x++){
+  const geo=sceneryAt(stage.value,x+scroll)
+  rect(x,geo.floor,1,H-geo.floor)
+  if(scene.ceiling)rect(x,TOP,1,geo.ceiling-TOP)
+ }
 }
 function draw(){
  if(!ctx)return
