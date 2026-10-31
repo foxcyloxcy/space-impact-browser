@@ -136,6 +136,35 @@ const aliens=[
  ['..##..','.####.','##..##','.####.','.#..#.'],
  ['..####..','.#.##.#.','########','#.#..#.#','.######.','..#..#..']
 ]
+// Level 1 is the first clean-room visual study. This silhouette is independently
+// drawn and approximate, NOT extracted firmware art; the others remain placeholders.
+const firstBossArt=[
+'....######.............',
+'..##########...........',
+'.############..........',
+'#######..######........',
+'########..########.....',
+'..##################...',
+'....#####..##########..',
+'...########..#########.',
+'..####################.',
+'.############.########.',
+'#####...####..#########',
+'###.....###############',
+'####...#######..#######',
+'.#############..######.',
+'..##################...',
+'....##############.....',
+'.....####....####......',
+'......##......##.......',
+'.......##....##........',
+'........######.........',
+'.........####..........',
+'..........##...........',
+'.......................',
+'.......................',
+'.......................'
+]
 const bossArt=[
  '..######...............',
  '.#########.............',
@@ -165,6 +194,19 @@ const bossArt=[
 ]
 function drawTerrain(){
  if(!ctx)return
+ if(stage.value===1){
+  // Independent low-resolution stage-one terrain concept: jagged silhouettes
+  // and isolated high ledges. Exact locations and collisions still await MAME traces.
+  const scroll=Math.floor(elapsed*5)
+  ctx.fillStyle='#17291e'
+  for(let x=0;x<W;x++){
+   const world=x+scroll
+   const ridge=42-(Math.floor(world/11)%4)*2-(Math.floor(world/7)%2)
+   rect(x,ridge,1,H-ridge)
+   if(Math.floor(world/29)%3===1 && world%29<8)rect(x,8,1,Math.max(1,4-Math.abs((world%29)-4)))
+  }
+  return
+ }
  const phase=elapsed*(5+stage.value*.4)
  // LCD outlines: horizon, rock arches, stalagmites and repeating stage silhouettes.
  ctx.strokeStyle='#1b3023';ctx.lineWidth=1
@@ -190,7 +232,7 @@ function draw(){
  ctx.fillText(String(score.value%100000).padStart(5,'0'),53,0)
  if(ammo>0){rect(43,1,3,3);ctx.font='5px monospace';ctx.fillText(String(ammo),47,0)}
  if(invulnerable===0||Math.floor(elapsed*8)%2===0)sprite(player.x,player.y,ship)
- for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,bossArt);else sprite(e.x,e.y,aliens[e.kind||0])}
+ for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,stage.value===1?firstBossArt:bossArt);else sprite(e.x,e.y,aliens[e.kind||0])}
  for(const s of shots){if(s.type==='bomb'){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(s.x),Math.round(s.y),3,3)}else rect(s.x,s.y,s.type==='laser'?8:s.type==='rocket'?4:2,1)}
  for(const s of hostile)rect(s.x,s.y,2,1)
  for(const d of drops){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(d.x),Math.round(d.y),4,4);rect(d.x+1,d.y+1,2,2)}
