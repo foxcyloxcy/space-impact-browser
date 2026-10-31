@@ -46,7 +46,7 @@ const W=84,H=48, TOP=7
 const held = new Set<string>()
 let ctx: CanvasRenderingContext2D | null = null
 let frame=0, last=0, accumulator=0, elapsed=0, spawnTimer=0, fireTimer=0, invulnerable=0, lives=3, ammo=3, bossSpawned=false, stageTime=0
-let player:Actor={x:9,y:24,w:11,h:7,hp:1,speed:29}
+let player:Actor={x:9,y:24,w:7,h:5,hp:1,speed:29}
 let enemies:Actor[]=[], shots:Shot[]=[], hostile:Shot[]=[], drops:Drop[]=[]
 const stars = Array.from({length:12},(_,i)=>({x:(i*23)%W,y:TOP+2+((i*11)%(H-TOP-5)),size:1}))
 const audioFeedback=createAudioFeedback()
@@ -54,7 +54,7 @@ function toggleSound(){muted.value=!muted.value;audioFeedback.setMuted(muted.val
 const specialTypes=['bomb','rocket','laser'] as const
 let selectedSpecial=0
 function reset() {
-  held.clear();accumulator=0;selectedSpecial=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:11,h:7,hp:1,speed:29};stageReset();mode.value='playing'
+  held.clear();accumulator=0;selectedSpecial=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:9,y:24,w:7,h:5,hp:1,speed:29};stageReset();mode.value='playing'
 }
 function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;spawnIndex=0;stageTime=0;invulnerable=1.5}
 function start(){audioFeedback.unlock();if(mode.value==='paused'){mode.value='playing';return}reset()}
@@ -88,7 +88,7 @@ function saveBest(){if(score.value>best.value){best.value=score.value;try{localS
 // The observed game uses authored enemy paths; these events are provisional reconstructions.
 let spawnIndex=0
 function enemySpawn(kind:number,y:number){
- enemies.push({x:W+3,y,w:kind===2?10:9,h:7,hp:kind===2?3:1,speed:stage.value===1?LEVEL_ONE.enemySpeed:11+stage.value*.55,kind,phase:spawnIndex*.8,originY:y,age:0})
+ enemies.push({x:W+3,y,w:kind===2?7:6,h:5,hp:kind===2?3:1,speed:stage.value===1?LEVEL_ONE.enemySpeed:11+stage.value*.55,kind,phase:spawnIndex*.8,originY:y,age:0})
 }
 function firePrimary(){
  if(mode.value!=='playing'||fireTimer>0)return
