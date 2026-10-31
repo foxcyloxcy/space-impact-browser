@@ -1,12 +1,12 @@
 # Space Impact: Browser Edition
 
-An unofficial, Nokia-era-inspired horizontal space shooter built with **Nuxt 3, Vue 3 and HTML5 Canvas**. This project preserves a green monochrome pixel aesthetic while using original code and procedural pixel sprites.
+An unofficial, Nokia-era-inspired horizontal space shooter built with **Nuxt 3 (built on Vue 3) and HTML5 Canvas**. This is **not** a plain Vue/Vite migration. This project preserves a green monochrome pixel aesthetic while using original code and procedural pixel sprites.
 
 ## Project status (2026-10-31)
 
 A playable first browser milestone is implemented in `app.vue`: four-direction movement, repeated primary fire, limited spread specials, enemy types and enemy projectiles, destructible bosses, eight consecutive sectors, lives, ammo pickups, scoring, pause/resume, restart, on-screen mobile controls and a browser-local best score. **This is not yet a frame-perfect recreation or a production-verified release.** Exact original enemy waves, level maps, boss art, sound, speed and scoring still require reference-by-reference comparison.
 
-## Run locally
+## GitHub Pages deployment\n\nThis repository remains **Nuxt 3 / Vue 3**. The deployment workflow at `.github/workflows/deploy-pages.yml` generates static files with `yarn generate`, sets the project base URL to `/space-impact-browser/`, then publishes `.output/public` to GitHub Pages. GitHub Pages must have **Settings → Pages → Build and deployment → Source: GitHub Actions** selected. The intended website URL is https://foxcyloxcy.github.io/space-impact-browser/ (do not treat it as live until a Pages deployment succeeds).\n\n## Run locally
 
 Requirements: Node.js supported by this project's Nuxt version and Yarn 1.x (the existing project package manager).
 
