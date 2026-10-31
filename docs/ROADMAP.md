@@ -39,3 +39,10 @@ Updated: 2026-10-31
 
 ## Non-goals for this phase
 Accounts, cloud leaderboards, multiplayer, monetization, paid APIs or migrating away from Nuxt.
+
+## Fidelity update (2026-10-31)
+- [x] Restored 84×48 Nokia-era display geometry, LCD-scale sprite rendering, compact HUD and repeating stage wave sequences.
+- [ ] Regenerate/verify passing unit and browser E2E checks after coordinate changes.
+- [ ] Obtain permission-cleared, frame-audited sprites and exact eight-level timing/wave data.
+- [ ] Implement original bomb, rocket and laser special weapons, original sound and proper level obstacle hitboxes.
+- [ ] Confirm GitHub Pages deployment of the fidelity update before calling it live.
