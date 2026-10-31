@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { playerWithinBounds, intersects, advanceStage, useSpecial, nextFireTimer, damage, fixedAdvance } from './game/core/rules.mjs'
 
 type Actor = { x:number; y:number; w:number; h:number; hp:number; speed:number; kind?:number; phase?:number }
 type Shot = { x:number; y:number; vx:number; vy:number; special?:boolean }
@@ -37,22 +38,22 @@ const score = ref(0), best = ref(0), stage = ref(1)
 const W=320,H=200, TOP=20
 const held = new Set<string>()
 let ctx: CanvasRenderingContext2D | null = null
-let frame=0, last=0, elapsed=0, spawnTimer=0, fireTimer=0, invulnerable=0, lives=3, ammo=3, bossSpawned=false, stageTime=0
+let frame=0, last=0, accumulator=0, elapsed=0, spawnTimer=0, fireTimer=0, invulnerable=0, lives=3, ammo=3, bossSpawned=false, stageTime=0
 let player:Actor={x:28,y:99,w:12,h:9,hp:1,speed:105}
 let enemies:Actor[]=[], shots:Shot[]=[], hostile:Shot[]=[], drops:Drop[]=[]
 const stars = Array.from({length:35},(_,i)=>({x:(i*83)%W,y:TOP+((i*47)%(H-TOP)),size:i%4===0?2:1}))
 const themes=['DUST','ORBIT','CRATER','VOID','ASTEROID','NEBULA','ECLIPSE','CORE']
 function reset() {
-  score.value=0;stage.value=1; lives=3;ammo=3;player={x:28,y:99,w:12,h:9,hp:1,speed:105};stageReset();mode.value='playing'
+  held.clear();accumulator=0;score.value=0;stage.value=1; lives=3;ammo=3;player={x:28,y:99,w:12,h:9,hp:1,speed:105};stageReset();mode.value='playing'
 }
 function stageReset(){enemies=[];shots=[];hostile=[];drops=[];elapsed=0;spawnTimer=.7;fireTimer=0;bossSpawned=false;stageTime=0;invulnerable=1.5}
 function start(){if(mode.value==='paused'){mode.value='playing';return}reset()}
 function togglePause(){if(mode.value==='playing')mode.value='paused';else if(mode.value==='paused')mode.value='playing'}
-function press(key:string,e?:PointerEvent){if(e?.currentTarget instanceof Element && 'setPointerCapture' in e.currentTarget) (e.currentTarget as Element).setPointerCapture(e.pointerId);held.add(key)}
+function press(key:string,e?:PointerEvent){if(e?.currentTarget instanceof Element && 'setPointerCapture' in e.currentTarget){try{(e.currentTarget as Element).setPointerCapture(e.pointerId)}catch{}}held.add(key)}
 function release(key:string){held.delete(key)}
 function special(){
  if(mode.value!=='playing'||ammo<=0)return
- ammo--
+ ammo=useSpecial(ammo).ammo
  for(const offset of [-.35,0,.35])shots.push({x:player.x+11,y:player.y+4,vx:190,vy:offset*190,special:true})
 }
 function keydown(e:KeyboardEvent){
@@ -63,10 +64,10 @@ function keydown(e:KeyboardEvent){
  if(!e.repeat && e.key==='Enter' && mode.value!=='playing')start()
 }
 function keyup(e:KeyboardEvent){const map:Record<string,string>={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',' ':'fire','1':'fire','3':'fire'};if(map[e.key])held.delete(map[e.key])}
-function overlap(a:{x:number;y:number;w:number;h:number},b:{x:number;y:number;w:number;h:number}){return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y}
+function overlap(a:{x:number;y:number;w:number;h:number},b:{x:number;y:number;w:number;h:number}){return intersects(a,b)}
 function hit(){
  if(invulnerable>0)return
- lives--;invulnerable=1.8
+ const result=damage(lives,invulnerable);lives=result.lives;invulnerable=result.invulnerability
  if(lives<=0){mode.value='gameover';saveBest()}
 }
 function saveBest(){if(score.value>best.value){best.value=score.value;try{localStorage.setItem('space-impact-best',String(best.value))}catch{}}}
@@ -75,9 +76,10 @@ function bossSpawn(){bossSpawned=true;enemies.push({x:W+10,y:85,w:43,h:36,hp:18+
 function update(dt:number){
  elapsed+=dt;stageTime+=dt;invulnerable=Math.max(0,invulnerable-dt);fireTimer-=dt
  const dx=Number(held.has('right'))-Number(held.has('left')),dy=Number(held.has('down'))-Number(held.has('up'))
- player.x=Math.max(2,Math.min(W-player.w-2,player.x+dx*player.speed*dt))
- player.y=Math.max(TOP+2,Math.min(H-player.h-2,player.y+dy*player.speed*dt))
- if(held.has('fire') && fireTimer<=0){shots.push({x:player.x+12,y:player.y+4,vx:185,vy:0});fireTimer=.16}
+ const next=playerWithinBounds(player.x+dx*player.speed*dt,player.y+dy*player.speed*dt,player.w,player.h)
+ player.x=next.x;player.y=next.y
+ const firing=nextFireTimer(held.has('fire'),fireTimer)
+ if(firing.fired){shots.push({x:player.x+12,y:player.y+4,vx:185,vy:0});fireTimer=firing.timer}
  if(!bossSpawned && stageTime<23){spawnTimer-=dt;if(spawnTimer<=0){enemySpawn();spawnTimer=Math.max(.42,1.2-stage.value*.065)}}
  if(!bossSpawned && stageTime>=23)bossSpawn()
  shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt})
@@ -104,7 +106,7 @@ function update(dt:number){
  for(const s of hostile){if(overlap({x:s.x,y:s.y,w:4,h:3},player)){hit();s.x=-100}}
  for(const d of drops){if(overlap({x:d.x,y:d.y,w:9,h:9},player)){if(d.kind==='life')lives=Math.min(5,lives+1);else ammo=Math.min(9,ammo+2);d.x=-100}}
  enemies=enemies.filter(e=>e.hp>0&&e.x+e.w>0);shots=shots.filter(s=>s.x<W+10&&s.y>TOP&&s.y<H);hostile=hostile.filter(s=>s.x>-10&&s.y>TOP&&s.y<H);drops=drops.filter(d=>d.x>-10)
- if(bossSpawned && !enemies.some(e=>e.kind===9)){if(stage.value===8){mode.value='won';saveBest()}else{stage.value++;stageReset()}}
+ if(bossSpawned && !enemies.some(e=>e.kind===9)){const result=advanceStage(stage.value);if(result.won){mode.value='won';saveBest()}else{stage.value=result.stage;stageReset()}}
 }
 function rect(x:number,y:number,w:number,h:number){ctx?.fillRect(Math.round(x),Math.round(y),Math.ceil(w),Math.ceil(h))}
 function sprite(x:number,y:number,rows:string[],scale=1){if(!ctx)return;rows.forEach((line,j)=>{for(let i=0;i<line.length;i++)if(line[i]==='#')rect(x+i*scale,y+j*scale,scale,scale)})}
@@ -127,7 +129,7 @@ function draw(){
  for(const d of drops){ctx.strokeStyle='#1d3628';ctx.strokeRect(d.x,d.y,9,9);ctx.fillText(d.kind==='life'?'+':'S',d.x+2,d.y+7)}
  if(bossSpawned){const b=enemies.find(e=>e.kind===9);if(b){rect(92,17,135,2);ctx.fillStyle='#a4c49a';rect(93,17,133*(b.hp/(18+stage.value*7)),2)}}
 }
-function loop(t:number){const dt=Math.min((t-last)/1000||0,.05);last=t;if(mode.value==='playing')update(dt);draw();frame=requestAnimationFrame(loop)}
+function loop(t:number){const dt=Math.min((t-last)/1000||0,.1);last=t;if(mode.value==='playing'){const steps=fixedAdvance(accumulator,dt);accumulator=steps.accumulator;for(let i=0;i<steps.steps&&mode.value==='playing';i++)update(1/60)}else{accumulator=0}draw();frame=requestAnimationFrame(loop)}
 function blur(){held.clear();if(mode.value==='playing')mode.value='paused'}
 onMounted(()=>{ctx=canvas.value?.getContext('2d')||null;if(ctx)ctx.imageSmoothingEnabled=false;try{best.value=Number(localStorage.getItem('space-impact-best'))||0}catch{};window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',blur);frame=requestAnimationFrame(loop)})
 onUnmounted(()=>{cancelAnimationFrame(frame);window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);held.clear()})
