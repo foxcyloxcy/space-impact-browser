@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { numberPixels, HUD_POSITIONS } from './game/render/pixel-font.mjs'
 import { intersects, advanceStage, useSpecial, damage, fixedAdvance } from './game/core/rules.mjs'
 import { STAGE_SCRIPTS, eventsDue } from './game/content/stages.mjs'
 import { bossProfile, bossPosition, bossProjectiles, bossSprite } from './game/content/bosses.mjs'
@@ -151,6 +152,7 @@ function update(dt:number){
  if(bossSpawned && !enemies.some(e=>e.kind===9)){const result=advanceStage(stage.value);if(result.won){mode.value='won';audioFeedback.stage();saveBest()}else{audioFeedback.stage();stage.value=result.stage;stageReset()}}
 }
 function rect(x:number,y:number,w:number,h:number){ctx?.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h)))}
+function drawHudNumber(value:number,position:{x:number;y:number;digits:number}){for(const [px,py] of numberPixels(value,position))rect(px,py,1,1)}
 function sprite(x:number,y:number,rows:readonly string[],scale=1){
  if(!ctx)return
  rows.forEach((line,j)=>{for(let i=0;i<line.length;i++)if(line[i]==='#')rect(x+i*scale,y+j*scale,scale,scale)})
@@ -237,11 +239,11 @@ function draw(){
  ctx.fillStyle='#17291e'
  for(let i=0;i<lives;i++)sprite(1+i*5,0,['#.#','###','.#.'])
  sprite(23,1,['##','#.','##'])
- ctx.font='bold 6px monospace'
- ctx.textBaseline='top'
- ctx.fillText(String(stage.value).padStart(2,'0'),31,0)
- ctx.fillText(String(score.value%100000).padStart(5,'0'),53,0)
- if(ammo>0){rect(43,1,3,3);ctx.font='5px monospace';ctx.fillText(String(ammo),47,0)}
+ // Draw every glyph as a whole LCD pixel: never use antialiased Canvas text here.
+ drawHudNumber(stage.value,HUD_POSITIONS.stage)
+ rect(42,1,3,3)
+ drawHudNumber(ammo,HUD_POSITIONS.ammo)
+ drawHudNumber(score.value,HUD_POSITIONS.score)
  if(invulnerable===0||Math.floor(elapsed*8)%2===0)sprite(player.x,player.y,PLAYER_SPRITE)
  for(const e of enemies){if(e.kind===9)sprite(e.x,e.y,stage.value===1?firstBossArt:bossSprite(stage.value),stage.value===1?1:2);else sprite(e.x,e.y,ENEMY_SPRITES[e.kind||0])}
  for(const s of shots){if(s.type==='bomb'){ctx.strokeStyle='#17291e';ctx.strokeRect(Math.round(s.x),Math.round(s.y),3,3)}else rect(s.x,s.y,s.type==='laser'?8:s.type==='rocket'?4:2,1)}
