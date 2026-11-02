@@ -29,3 +29,20 @@ test('gameplay has the right responsive controls', async ({ page, isMobile }) =>
   }
   await expect(page.getByRole('button', { name: 'PAUSE' })).toBeVisible()
 })
+
+test('LCD HUD uses hard monochrome pixels with no blurred font edges', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'START GAME' }).click()
+  const hudColors = await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return []
+    const data = ctx.getImageData(0, 0, 84, 7).data
+    const colors = new Set<string>()
+    for (let i = 0; i < data.length; i += 4) {
+      colors.add(Array.from(data.slice(i, i + 4)).join(','))
+    }
+    return Array.from(colors).sort()
+  })
+  expect(hudColors).toEqual(['145,184,155,255', '23,41,30,255'])
+  await expect(page.locator('canvas')).toHaveCSS('image-rendering', 'pixelated')
+})
