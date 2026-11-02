@@ -66,7 +66,7 @@ function special(){
  if(mode.value!=='playing'||ammo<=0)return
  audioFeedback.special()
  ammo=useSpecial(ammo).ammo
- const type=specialTypes[selectedSpecial]
+ const type=specialTypes[selectedSpecial.value]
  shots.push(createProjectile(type,player.x+6,player.y+2))
  selectedSpecial.value=(selectedSpecial.value+1)%specialTypes.length
 }
